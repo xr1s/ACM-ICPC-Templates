@@ -2,6 +2,7 @@
 
 #include "Matrix.hh"
 
+// The size of Static matrix is fixed at runtime.
 template <typename T, size_t Row, size_t Col>
 class Matrix {
  public:
@@ -16,26 +17,26 @@ class Matrix {
   T *operator[](size_t row);
   const T *operator[](size_t row) const;
 
+  size_t col() const;
+  size_t row() const;
+
+
   Matrix &copyFrom(const Matrix &);
   Matrix &copyFromArray(const T (&arr)[Row][Col]);
 
   Matrix &triangularize();
   Matrix &eliminate();
 
-  const size_t row, col;
-
  private:
   T value[Row][Col];
 };
 
 template <typename T, size_t Row, size_t Col>
-Matrix<T, Row, Col>::Matrix()
-    : row(Row), col(Col) {
+Matrix<T, Row, Col>::Matrix() {
 }
 
 template <typename T, size_t Row, size_t Col>
-Matrix<T, Row, Col>::Matrix(const Matrix &that)
-    : row(Row), col(Col) {
+Matrix<T, Row, Col>::Matrix(const Matrix &that) {
   this->copyFrom(that);
 }
 
@@ -77,6 +78,16 @@ Matrix<T, Row, Col>::operator[](size_t row) {
 template <typename T, size_t Row, size_t Col> const T *
 Matrix<T, Row, Col>::operator[](size_t row) const {
   return this->value[row];
+}
+
+template <typename T, size_t Row, size_t Col> size_t
+Matrix<T, Row, Col>::row() const {
+  return Row;
+}
+
+template <typename T, size_t Row, size_t Col> size_t
+Matrix<T, Row, Col>::col() const {
+  return Col;
 }
 
 template <typename T, size_t Row, size_t Col> Matrix<T, Row, Col> &

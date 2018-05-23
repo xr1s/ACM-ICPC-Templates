@@ -4,6 +4,7 @@
 
 #include <algorithm>  // std::swap
 
+// Square matrix is a special case of static matrix.
 template <typename T, size_t Len>
 class Matrix<T, Len, Len> {
  public:
@@ -19,6 +20,8 @@ class Matrix<T, Len, Len> {
   T *operator[](size_t row);
   const T *operator[](size_t row) const;
 
+  size_t row() const;
+  size_t col() const;
   Matrix &copyFrom(const Matrix &);
   Matrix &copyFromArray(const T (&)[Len][Len]);
 
@@ -28,26 +31,22 @@ class Matrix<T, Len, Len> {
   Matrix &inverse();
   T determinant() const;
 
-  const size_t row, col;
  private:
   T value[Len][Len];
 };
 
 template <typename T, size_t Len>
-Matrix<T, Len, Len>::Matrix()
-    : row(Len), col(Len) {
+Matrix<T, Len, Len>::Matrix() {
 }
 
 template <typename T, size_t Len>
-Matrix<T, Len, Len>::Matrix(const T &value)
-    : row(Len), col(Len) {
+Matrix<T, Len, Len>::Matrix(const T &value) {
   for (size_t i = 0; i != Len; ++i)
     this->value[i][i] = value;
 }
 
 template <typename T, size_t Len>
-Matrix<T, Len, Len>::Matrix(const Matrix &that)
-    : row(Len), col(Len) {
+Matrix<T, Len, Len>::Matrix(const Matrix &that) {
   this->copyFrom(that);
 }
 
@@ -75,6 +74,16 @@ Matrix<T, Len, Len>::operator[](size_t row) {
 template <typename T, size_t Len> const T *
 Matrix<T, Len, Len>::operator[](size_t row) const {
   return this->value[row];
+}
+
+template <typename T, size_t Len> size_t
+Matrix<T, Len, Len>::row() const {
+  return Len;
+}
+
+template <typename T, size_t Len> size_t
+Matrix<T, Len, Len>::col() const {
+  return Len;
 }
 
 template <typename T, size_t Len> Matrix<T, Len, Len> &
@@ -154,6 +163,7 @@ Matrix<T, Len, Len>::determinant() const {
   return isZero(result) ? 0 : result;
 }
 
+// Will throw std::invalid_argument if not inversible.
 template <typename T, size_t Len> Matrix<T, Len, Len> &
 Matrix<T, Len, Len>::inverse() {
   T concat[Len][Len * 2];
