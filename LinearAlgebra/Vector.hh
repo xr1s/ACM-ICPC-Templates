@@ -4,6 +4,9 @@
 #include <numeric>
 #include "Matrix.hh"
 
+// The only use of this Vector is to multiply with Matrix.
+// The 3-dimension vector should be a specialization of this class,
+// and be defined at ComputationalGeometry (if I write. Well, OK, TODO).
 template <typename T, size_t Len = 0> class Vector;
 template <typename T, size_t Len> Vector<T, Len> &
 operator+=(Vector<T, Len> &, const Vector<T, Len> &);
@@ -12,6 +15,8 @@ operator-=(Vector<T, Len> &, const Vector<T, Len> &);
 template <typename T, size_t Len> T
 operator*(const Vector<T, Len> &, const Vector<T, Len> &);
 
+// The fix-sized vector.
+// Sometimes I thought variable-sized vector is useless.
 template <typename T, size_t Len>
 class Vector {
  public:
@@ -33,6 +38,9 @@ class Vector {
 
   friend Vector &operator+=<>(Vector &, const Vector &);
   friend Vector &operator-=<>(Vector &, const Vector &);
+  // Inner product of two vector, see implementation below.
+  // The 3-dimension vector should have cross product,
+  // should I use * or something else? Missing @ in Python (>=3.5)
   friend T operator*<>(const Vector &, const Vector &);
 
  private:
@@ -105,7 +113,7 @@ operator+(const Vector<T, Len> &lhs, const Vector<T, Len> &rhs) {
 template <typename T, size_t Len> Vector<T, Len> &
 operator-=(Vector<T, Len> &lhs, const Vector<T, Len> &rhs) {
   std::transform(lhs.value, lhs.value + Len,
-            rhs.value, lhs.value, std::minus<T>());
+                 rhs.value, lhs.value, std::minus<T>());
   return lhs;
 }
 
