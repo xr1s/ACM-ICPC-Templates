@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdexcept>
-#include "Matrix.hh"
+#include "MatrixDecl.hh"
 
 template <typename T> Matrix<T> &
 operator+=(Matrix<T> &, const Matrix<T> &);
@@ -10,7 +10,7 @@ operator-=(Matrix<T> &, const Matrix<T> &);
 template <typename T> Matrix<T> &
 operator*=(Matrix<T> &, const Matrix<T> &);
 
-// Matrix<T, 0, 0> is a variable sized matrix,
+// Matrix<T, 0, 0> is a variable-sized matrix,
 // which has the ability to change size at runtime.
 // Some functions will throw std::invalid_argument
 // if the column and row of argument(s) do not satisfy the requirement.
@@ -106,7 +106,6 @@ Matrix<T>::Matrix(const Head (&head)[Col], const Tail (&...tail)[Col])
     : row_{sizeof...(tail) + 1}, col_{Col} {
   const Head *array[sizeof...(tail) + 1] = { head, tail... };
   this->value = new T[this->row_ * this->col_];
-
   for (size_t r = 0; r != this->row_; ++r)
     std::copy(array[r], array[r] + Col, this->value + r * Col);
 }
@@ -138,8 +137,7 @@ Matrix<T>::copyFromArray(const T (&arr)[Row][Col]) {
   const size_t size = Row * Col;
   this->row_ = Row; this->col_ = Col;
   this->value = new T[size];
-  for (size_t i = 0; i != Row; ++i)
-    std::copy(arr[i], arr[i] + Col, this->value + i * Col);
+  std::copy(*arr, *arr + size, this->value);
   return *this;
 }
 
@@ -159,8 +157,8 @@ operator+=(Matrix<T, 0, 0> &lhs, const Matrix<T, 0, 0> &rhs) {
   if (lhs.row_ != rhs.row_ || lhs.col_ != rhs.col_)
     throw std::invalid_argument("Matrix<T>::operator+=");
   const size_t size = lhs.row_ * lhs.col_;
-  for (size_t i = 0; i != size; ++i)
-    lhs.value[i] += rhs.value[i];
+  std::transform(lhs.value, lhs.value + size,
+                 rhs.value, lhs.value, std::plus<T>());
   return lhs;
 }
 
@@ -168,8 +166,8 @@ template <typename T> Matrix<T>
 operator+(const Matrix<T> &lhs, const Matrix<T> &rhs) {
   if (lhs.row() != rhs.row() || lhs.col() != rhs.col())
     throw std::invalid_argument("Matrix<T>::operator+");
-  Matrix<T> ret = lhs;
-  return ret += rhs;
+  Matrix<T> result = lhs;
+  return result += rhs;
 }
 
 template <typename T> Matrix<T> &
@@ -177,8 +175,8 @@ operator-=(Matrix<T> &lhs, const Matrix<T> &rhs) {
   if (lhs.row_ != rhs.row_ || lhs.col_ != rhs.col_)
     throw std::invalid_argument("Matrix<T>::operator-=");
   const size_t size = lhs.row_ * lhs.col_;
-  for (size_t i = 0; i != size; ++i)
-    lhs.value[i] -= rhs.value[i];
+  std::transform(lhs.value, lhs.value + size,
+                 rhs.value, lhs.value, std::minus<T>());
   return lhs;
 }
 
@@ -186,30 +184,29 @@ template <typename T> Matrix<T>
 operator-(const Matrix<T> &lhs, const Matrix<T> &rhs) {
   if (lhs.row() != rhs.row() || lhs.col() != rhs.col())
     throw std::invalid_argument("Matrix<T>::operator-");
-  Matrix<T> ret = lhs;
-  return ret -= rhs;
+  Matrix<T> result = lhs;
+  return result -= rhs;
 }
 
 template <typename T> Matrix<T> &
 operator*=(Matrix<T> &lhs, const Matrix<T> &rhs) {
   if (lhs.col_ != rhs.row_)
     throw std::invalid_argument("Matrix<T>::operator*=");
-  Matrix<T> ret(lhs.row_, rhs.col_);
-  std::fill(ret.value, ret.value + ret.row_ * ret.col_, 0);
-  for (size_t r = 0; r != ret.row_; ++r)
-    for (size_t c = 0; c != ret.col_; ++c) {
+  Matrix<T> result(lhs.row_, rhs.col_);
+  std::fill(result.value, result.value + result.row_ * result.col_, 0);
+  for (size_t r = 0; r != result.row_; ++r)
+    for (size_t c = 0; c != result.col_; ++c)
       for (size_t i = 0; i != lhs.col_; ++i)
-        ret[r][c] += lhs[r][i] * rhs[i][c];
-    }
-  return lhs.moveFrom(ret);
+        result[r][c] += lhs[r][i] * rhs[i][c];
+  return lhs.moveFrom(result);
 }
 
 template <typename T> Matrix<T>
 operator*(const Matrix<T> &lhs, const Matrix<T> &rhs) {
   if (lhs.col() != rhs.row())
     throw std::invalid_argument("Matrix<T>::operator*");
-  Matrix<T> ret = lhs;
-  return ret *= rhs;
+  Matrix<T> result = lhs;
+  return result *= rhs;
 }
 
 template <typename T> size_t
@@ -243,11 +240,7 @@ Matrix<T>::triangularize() {
   triangularize_(matrix, row, col);
   T *value = new T[row * col];
   for (size_t r = 0; r != row; ++r)
-#if __cpluslus >= 201103L
-    std::move(matrix[r], matrix[r] + col, value + r * col);
-#else
-    std::copy(matrix[r], matrix[r] + col, value + r * col);
-#endif
+    ifCpp11MoveElseCopy(matrix[r], matrix[r] + col, value + r * col);
   delete[] matrix, delete[] this->value;
   this->value = value;
   return *this;
@@ -263,11 +256,7 @@ Matrix<T>::eliminate() {
   canonicalize_(matrix, row, col);
   T *value = new T[row * col];
   for (size_t r = 0; r != row; ++r)
-#if __cpluslus >= 201103L
-    std::move(matrix[r], matrix[r] + col, value + r * col);
-#else
-    std::copy(matrix[r], matrix[r] + col, value + r * col);
-#endif
+    ifCpp11MoveElseCopy(matrix[r], matrix[r] + col, value + r * col);
   delete[] matrix, delete[] this->value;
   this->value = value;
   return *this;
@@ -276,21 +265,18 @@ Matrix<T>::eliminate() {
 template <typename T> Matrix<T> &
 Matrix<T>::inverse() {
   const size_t row = this->row_, col = this->col_;
+  T *const value = this->value;
   if (row != col)
     throw std::invalid_argument("Matrix<T>::inverse");
 
   T *concat = new T[row * col * 2];
   T **matrix = new T *[row];
-  std::fill(concat, concat + row * col * 2, 0);
 
   for (size_t i = 0; i != row; ++i) {
-#if __cplusplus >= 201103L
-    std::move(value + i * col, value + i * col + col, concat + i * col * 2);
-#else
-    std::copy(value + i * col, value + i * col + col, concat + i * col * 2);
-#endif
-    concat[(i * 2 + 1) * col + i] = 1;
     matrix[i] = concat + i * col * 2;
+    ifCpp11MoveElseCopy(value + i * col, value + i * col + col, matrix[i]);
+    std::fill(matrix[i] + col, matrix[i] + col * 2, 0);
+    matrix[i][col + i] = 1;
   }
   triangularize_(matrix, row, col * 2);
 
@@ -299,15 +285,9 @@ Matrix<T>::inverse() {
       delete[] matrix, delete[] concat;
       throw std::invalid_argument("Matrix::inverse");
     }
-
   canonicalize_(matrix, row, col * 2);
-
   for (size_t i = 0; i != row; ++i)
-#if __cplusplus >= 201103L
-    std::move(matrix[i] + col, matrix[i] + col * 2, value + i * col);
-#else
-    std::copy(matrix[i] + col, matrix[i] + col * 2, value + i * col);
-#endif
+    ifCpp11MoveElseCopy(matrix[i] + col, matrix[i] + col * 2, value + i * col);
 
   delete[] matrix, delete[] concat;
   return *this;
@@ -318,10 +298,10 @@ Matrix<T>::determinant() const {
   const size_t row = this->row_, col = this->col_;
   if (row != col)
     throw std::invalid_argument("Matrix<T>::determinant");
-  Matrix copy = *this;
+  Matrix temporary = *this;
   T **matrix = new T *[row];
   for (size_t i = 0; i != row; ++i)
-    matrix[i] = copy.value + i * col;
+    matrix[i] = temporary.value + i * col;
   T result = triangularize_(matrix, row, col) ? 1 : -1;
   for (size_t i = 0; i != row; ++i)
     if (!isZero(result)) result *= matrix[i][i];
