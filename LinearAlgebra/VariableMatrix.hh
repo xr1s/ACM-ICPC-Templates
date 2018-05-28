@@ -1,8 +1,7 @@
 #pragma once
 
+#include <stdexcept>
 #include "Matrix.hh"
-#include <algorithm>  // std::swap
-#include <stdexcept>  // std::invalid_argument
 
 template <typename T> Matrix<T> &
 operator+=(Matrix<T> &, const Matrix<T> &);
@@ -11,14 +10,14 @@ operator-=(Matrix<T> &, const Matrix<T> &);
 template <typename T> Matrix<T> &
 operator*=(Matrix<T> &, const Matrix<T> &);
 
-// Matrix<T, 0, 0> is able to change size at runtime.
-// This will throw std::invalid_argument if the numbers of column and row do not
-// satisfy the requirement. For example, operator+(A, B) requires A and B are
-// of the same size.
+// Matrix<T, 0, 0> is a variable sized matrix,
+// which has the ability to change size at runtime.
+// Some functions will throw std::invalid_argument
+// if the column and row of argument(s) do not satisfy the requirement.
+// For example, the operator+(A, B) requires A and B are of the same size.
 template <typename T>
 class Matrix<T, 0, 0> {
  public:
-
   Matrix();
   Matrix(const Matrix &);
   Matrix &operator=(const Matrix &);
@@ -30,8 +29,8 @@ class Matrix<T, 0, 0> {
   Matrix(size_t, size_t);
 
 #if __cplusplus >= 201103L
-  template <typename ...Ta, size_t Col>
-  Matrix(const Ta (&...arr)[Col]);
+  template <typename Head, typename ...Tail, size_t Col>
+  Matrix(const Head (&)[Col], const Tail (&...tail)[Col]);
 #endif  // __cplusplus >= 201103L
 
   Matrix &copyFrom(const Matrix &);
@@ -57,11 +56,6 @@ class Matrix<T, 0, 0> {
  private:
   size_t row_, col_;
   T *value;
-
-  static bool triangularize_(T **, const size_t, const size_t);
-  static void canonicalize_(T **, const size_t, const size_t);
-
-  template <typename, size_t, size_t> friend class Matrix;
 };
 
 template <typename T>
@@ -107,16 +101,14 @@ Matrix<T>::Matrix(size_t row, size_t col)
 }
 
 #if __cplusplus >= 201103L
-template <typename T> template <typename ...Ta, size_t Col>
-Matrix<T>::Matrix(const Ta (&...arr)[Col])
-    : row_{sizeof...(arr)}, col_{Col} {
-  const T *array[sizeof...(arr)] = { arr... };
+template <typename T> template <typename Head, typename ...Tail, size_t Col>
+Matrix<T>::Matrix(const Head (&head)[Col], const Tail (&...tail)[Col])
+    : row_{sizeof...(tail) + 1}, col_{Col} {
+  const Head *array[sizeof...(tail) + 1] = { head, tail... };
   this->value = new T[this->row_ * this->col_];
 
-  size_t i = 0;
   for (size_t r = 0; r != this->row_; ++r)
-    for (size_t c = 0; c != this->col_; ++c)
-      this->value[i++] = array[r][c];
+    std::copy(array[r], array[r] + Col, this->value + r * Col);
 }
 #endif  // __cplusplus >= 201103L
 
@@ -248,7 +240,7 @@ Matrix<T>::triangularize() {
   T **matrix = new T *[row];
   for (size_t i = 0; i != row; ++i)
     matrix[i] = this->value + i * col;
-  Matrix<T>::triangularize_(matrix, row, col);
+  triangularize_(matrix, row, col);
   T *value = new T[row * col];
   for (size_t r = 0; r != row; ++r)
 #if __cpluslus >= 201103L
@@ -267,8 +259,8 @@ Matrix<T>::eliminate() {
   T **matrix = new T *[row];
   for (size_t i = 0; i != row; ++i)
     matrix[i] = this->value + i * col;
-  Matrix<T>::triangularize_(matrix, row, col);
-  Matrix<T>::canonicalize_(matrix, row, col);
+  triangularize_(matrix, row, col);
+  canonicalize_(matrix, row, col);
   T *value = new T[row * col];
   for (size_t r = 0; r != row; ++r)
 #if __cpluslus >= 201103L
@@ -300,7 +292,7 @@ Matrix<T>::inverse() {
     concat[(i * 2 + 1) * col + i] = 1;
     matrix[i] = concat + i * col * 2;
   }
-  Matrix<T>::triangularize_(matrix, row, col * 2);
+  triangularize_(matrix, row, col * 2);
 
   for (size_t i = 0; i != row; ++i)
     if (isZero(matrix[i][i])) {
@@ -308,7 +300,7 @@ Matrix<T>::inverse() {
       throw std::invalid_argument("Matrix::inverse");
     }
 
-  Matrix<T>::canonicalize_(matrix, row, col * 2);
+  canonicalize_(matrix, row, col * 2);
 
   for (size_t i = 0; i != row; ++i)
 #if __cplusplus >= 201103L
@@ -330,7 +322,7 @@ Matrix<T>::determinant() const {
   T **matrix = new T *[row];
   for (size_t i = 0; i != row; ++i)
     matrix[i] = copy.value + i * col;
-  T result = Matrix<T>::triangularize_(matrix, row, col) ? 1 : -1;
+  T result = triangularize_(matrix, row, col) ? 1 : -1;
   for (size_t i = 0; i != row; ++i)
     if (!isZero(result)) result *= matrix[i][i];
   delete[] matrix;
