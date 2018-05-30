@@ -10,7 +10,7 @@ template <typename T, size_t Col> class Matrix<T, 0, Col>;
 
 template <typename T>
 inline bool isZero(T value) {
-  return value == 0;
+  return value == T(0);
 }
 
 template <>
@@ -47,13 +47,13 @@ void ifCpp11MoveElseCopy(InputIter begin, InputIter end, InputIter dest) {
 // variable-sized matrix, I declare and defined the two functions here.
 template <typename T> bool
 triangularize_(T **matrix, const size_t row, const size_t col) {
-  using std::abs; using std::swap;
+  using std::swap;
   bool swapped = true;
   for (size_t r = 0, c = 0; r != row && c != col; ++c) {
-    size_t pivot = r;
-    for (size_t i = r; i != row; ++i)
-      if (abs(matrix[pivot][c]) < abs(matrix[i][c])) pivot = i;
-    if (isZero(matrix[pivot][c])) continue;
+    size_t pivot = ~static_cast<size_t>(0);
+    for (size_t i = r; !~pivot && i != row; ++i)
+      if (!isZero(matrix[i][c])) pivot = i;
+    if (pivot == ~static_cast<size_t>(0)) continue;
     swap(matrix[pivot], matrix[r++]); swapped ^= 1;
     for (size_t i = r; i != row; ++i) {
       T f = matrix[i][c] / matrix[r - 1][c];

@@ -12,8 +12,6 @@ template <typename T, size_t Len> Vector<T, Len> &
 operator+=(Vector<T, Len> &, const Vector<T, Len> &);
 template <typename T, size_t Len> Vector<T, Len> &
 operator-=(Vector<T, Len> &, const Vector<T, Len> &);
-template <typename T, size_t Len> T
-operator*(const Vector<T, Len> &, const Vector<T, Len> &);
 
 // The fix-sized vector.
 // Sometimes I thought variable-sized vector is useless.
@@ -38,10 +36,6 @@ class Vector {
 
   friend Vector &operator+=<>(Vector &, const Vector &);
   friend Vector &operator-=<>(Vector &, const Vector &);
-  // Inner product of two vector, see implementation below.
-  // The 3-dimension vector should have cross product,
-  // should I use * or something else? Missing @ in Python (>=3.5)
-  friend T operator*<>(const Vector &, const Vector &);
 
  private:
    T value[Len];
@@ -123,9 +117,12 @@ operator-(const Vector<T, Len> &lhs, const Vector<T, Len> &rhs) {
   return copy -= rhs;
 }
 
+// Inner product of two vector, see implementation below.
+// The 3-dimension vector should have cross product,
+// should I use * or something else? Missing @ in Python (>=3.5)
 template <typename T, size_t Len> T
 operator*(const Vector<T, Len> &lhs, const Vector<T, Len> &rhs) {
-  return std::inner_product(lhs.value, lhs.value + Len, rhs.value, 0);
+  return std::inner_product(&lhs[0], &lhs[0] + Len, &rhs[0], 0);
 }
 
 template <typename T, size_t Len> Vector<T, Len>
@@ -149,4 +146,14 @@ operator*(const Matrix<T, Len, Len> &lhs, const Vector<T, Len> &rhs) {
     for (size_t j = 0; j != Len; ++j)
       result[i] += lhs[i][j] * rhs[j];
   return result;
+}
+
+template <typename T, size_t Len> bool
+operator==(const Vector<T, Len> &lhs, const Vector<T, Len> &rhs) {
+  return std::equal(&lhs[0], &lhs[0] + Len, &rhs[0]);
+}
+
+template <typename T, size_t Len> bool
+operator!=(const Vector<T, Len> &lhs, const Vector<T, Len> &rhs) {
+  return !(lhs == rhs);
 }

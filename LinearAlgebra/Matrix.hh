@@ -9,6 +9,10 @@ template <typename T, size_t Row, size_t Col> Matrix<T, Row, Col> &
 operator+=(Matrix<T, Row, Col> &, const Matrix<T, Row, Col> &);
 template <typename T, size_t Row, size_t Col> Matrix<T, Row, Col> &
 operator-=(Matrix<T, Row, Col> &, const Matrix<T, Row, Col> &);
+template <typename T, size_t Row, size_t Col> bool
+operator==(const Matrix<T, Row, Col> &, const Matrix<T, Row, Col> &);
+template <typename T, size_t Row, size_t Col> bool
+operator!=(const Matrix<T, Row, Col> &, const Matrix<T, Row, Col> &);
 
 // Matrix<T, Row, Col> is fixed-sized at runtime.
 // Only the Matrix<T, Len, Len>, a.k.a. square matrix
@@ -39,6 +43,8 @@ class Matrix {
 
   friend Matrix &operator+=<>(Matrix &, const Matrix &);
   friend Matrix &operator-=<>(Matrix &, const Matrix &);
+  friend bool operator==<>(const Matrix &, const Matrix &);
+  friend bool operator!=<>(const Matrix &, const Matrix &);
 
  private:
   T value[Row][Col];
@@ -262,7 +268,7 @@ Matrix<T, Len, Len>::determinant() const {
   T result = triangularize_(matrix, Len, Len) ? 1 : -1;
   for (size_t i = 0; i != Len; ++i)
     if (isZero(result *= matrix[i][i])) return 0;
-  return isZero(result) ? 0 : result;
+  return result;
 }
 
 // Throws std::invalid_argument if not inversible.
@@ -278,7 +284,7 @@ Matrix<T, Len, Len>::inverse() {
   triangularize_(matrix, Len, Len * 2);
   // Give up if not inversible
   for (size_t i = 0; i != Len; ++i)
-    if (isZero(matrix[i][i]))
+    if (isZero(matrix[i][Len + i]))
       throw std::invalid_argument("Matrix::inverse");
   canonicalize_(matrix, Len, Len * 2);
   for (size_t i = 0; i != Len; ++i)
@@ -328,4 +334,14 @@ template <typename T, size_t Row, size_t Col> Matrix<T, Row, Col>
 operator*=(Matrix<T, Row, Col> &lhs, const Matrix<T, Col, Col> &rhs) {
   Matrix<T, Row, Col> result = lhs;
   return lhs = result * rhs;
+}
+
+template <typename T, size_t Row, size_t Col> bool
+operator==(const Matrix<T, Row, Col> &lhs, const Matrix<T, Row, Col> &rhs) {
+  return std::equal(*lhs.value, *lhs.value + Row * Col, *rhs.value);
+}
+
+template <typename T, size_t Row, size_t Col> bool
+operator!=(const Matrix<T, Row, Col> &lhs, const Matrix<T, Row, Col> &rhs) {
+  return !(lhs == rhs);
 }

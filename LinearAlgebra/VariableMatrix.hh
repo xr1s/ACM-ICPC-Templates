@@ -9,6 +9,10 @@ template <typename T> Matrix<T> &
 operator-=(Matrix<T> &, const Matrix<T> &);
 template <typename T> Matrix<T> &
 operator*=(Matrix<T> &, const Matrix<T> &);
+template <typename T> bool
+operator==(const Matrix<T> &, const Matrix<T> &);
+template <typename T> bool
+operator!=(const Matrix<T> &, const Matrix<T> &);
 
 // Matrix<T, 0, 0> is a variable-sized matrix,
 // which has the ability to change size at runtime.
@@ -43,6 +47,8 @@ class Matrix<T, 0, 0> {
   friend Matrix &operator+=<>(Matrix &, const Matrix &);
   friend Matrix &operator-=<>(Matrix &, const Matrix &);
   friend Matrix &operator*=<>(Matrix &, const Matrix &);
+  friend bool operator==<>(const Matrix &, const Matrix &);
+  friend bool operator!=<>(const Matrix &, const Matrix &);
 
   size_t row() const;
   size_t col() const;
@@ -307,4 +313,11 @@ Matrix<T>::determinant() const {
     if (!isZero(result)) result *= matrix[i][i];
   delete[] matrix;
   return isZero(result) ? 0 : result;
+}
+
+template <typename T> bool
+operator==(const Matrix<T> &lhs, const Matrix<T> &rhs) {
+  if (lhs.row_ != rhs.row_) return false;
+  if (lhs.col_ != rhs.col_) return false;
+  return std::equal(lhs.value, lhs.value + lhs.row_ * lhs.col_, rhs.value);
 }
