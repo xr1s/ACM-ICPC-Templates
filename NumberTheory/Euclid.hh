@@ -1,11 +1,13 @@
 #include <algorithm>  // std::swap
 #include <utility>  // std::pair, std::make_pair
 
-// Stein's Algorithm, find the greatest common divisor (GCD) of m and n.
-// benchmark random data 1 time faster than std::gcd (C++17).
+// Stein's algorithm, find the greatest common divisor (GCD) of m and n.
+// The result will always be non-negative.
+// If m or n is zero, the result will be the bigger one.
+// This implementation is 1 time faster than GNU STL std::gcd (C++17).
 // @param m: m above.
 // @param n: n above.
-// @return: GCD(m, n)
+// @return: GCD(m, n), always positive.
 template <typename T>
 T gcd(T m, T n) {
   if (!m || !n) return m | n;

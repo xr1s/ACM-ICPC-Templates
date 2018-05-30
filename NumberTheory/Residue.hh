@@ -18,8 +18,8 @@ template <typename T, T Mod> Residue<T, Mod> &
 operator*=(Residue<T, Mod> &, const Residue<T, Mod> &);
 template <typename T, T Mod> Residue<T, Mod> &
 operator/=(Residue<T, Mod> &, const Residue<T, Mod> &);
-template <typename T, T Mod> Residue<T, Mod> &
-operator/=(Residue<T, Mod> &, const Residue<T, Mod> &);
+template <typename T, T Mod> bool
+operator==(const Residue<T, Mod> &, const Residue<T, Mod> &);
 
 template <typename T, T Mod>
 class Residue {
@@ -34,6 +34,7 @@ class Residue {
   friend Residue &operator-=<>(Residue &, const Residue &);
   friend Residue &operator*=<>(Residue &, const Residue &);
   friend Residue &operator/=<>(Residue &, const Residue &);
+  friend bool operator==<>(const Residue &, const Residue &);
 
  private:
   T value;
@@ -93,6 +94,11 @@ operator+(const Residue<T, Mod> &lhs, const T &rhs) {
   return lhs + Residue<T, Mod>(rhs);
 }
 
+template <typename T, T Mod> Residue<T, Mod>
+operator+(const T &lhs, const Residue<T, Mod> &rhs) {
+  return Residue<T, Mod>(lhs) + rhs;
+}
+
 template <typename T, T Mod> Residue<T, Mod> &
 operator-=(Residue<T, Mod> &lhs, const Residue<T, Mod> &rhs) {
   if ((lhs.value -= rhs.value) < 0)
@@ -114,6 +120,11 @@ operator-(const Residue<T, Mod> &lhs, const Residue<T, Mod> &rhs) {
 template <typename T, T Mod> Residue<T, Mod>
 operator-(const Residue<T, Mod> &lhs, const T &rhs) {
   return lhs - Residue<T, Mod>(rhs);
+}
+
+template <typename T, T Mod> Residue<T, Mod>
+operator-(const T &lhs, const Residue<T, Mod> &rhs) {
+  return Residue<T, Mod>(lhs) - rhs;
 }
 
 template <typename T, T Mod> Residue<T, Mod> &
@@ -139,6 +150,11 @@ operator*(const Residue<T, Mod> &lhs, const T &rhs) {
   return lhs * Residue<T, Mod>(rhs);
 }
 
+template <typename T, T Mod> Residue<T, Mod>
+operator*(const T &lhs, const Residue<T, Mod> &rhs) {
+  return Residue<T, Mod>(lhs) * rhs;
+}
+
 template <typename T, T Mod> Residue<T, Mod> &
 operator/=(Residue<T, Mod> &lhs, const Residue<T, Mod> &rhs) {
   lhs.value *= modinv(rhs.value, Mod);
@@ -160,4 +176,39 @@ operator/(const Residue<T, Mod> &lhs, const Residue<T, Mod> &rhs) {
 template <typename T, T Mod> Residue<T, Mod>
 operator/(const Residue<T, Mod> &lhs, const T &rhs) {
   return lhs / Residue<T, Mod>(rhs);
+}
+
+template <typename T, T Mod> Residue<T, Mod>
+operator/(const T &lhs, const Residue<T, Mod> &rhs) {
+  return Residue<T, Mod>(lhs) / rhs;
+}
+
+template <typename T, T Mod> bool
+operator==(const Residue<T, Mod> &lhs, const Residue<T, Mod> &rhs) {
+  return lhs.value == rhs.value;
+}
+
+template <typename T, T Mod> bool
+operator==(const Residue<T, Mod> &lhs, const T &rhs) {
+  return lhs == Residue<T, Mod>(rhs);
+}
+
+template <typename T, T Mod> bool
+operator==(const T &lhs, const Residue<T, Mod> &rhs) {
+  return Residue<T, Mod>(lhs) == rhs;
+}
+
+template <typename T, T Mod> bool
+operator!=(const Residue<T, Mod> &lhs, const Residue<T, Mod> &rhs) {
+  return !(lhs == rhs);
+}
+
+template <typename T, T Mod> bool
+operator!=(const Residue<T, Mod> &lhs, const T &rhs) {
+  return !(lhs == Residue<T>(rhs));
+}
+
+template <typename T, T Mod> bool
+operator!=(const T &lhs, const  Residue<T, Mod> &rhs) {
+  return !(Residue<T>(lhs) == rhs);
 }
