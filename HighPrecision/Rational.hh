@@ -41,10 +41,10 @@ operator*=(Rational<T> &, const T &);
 template <typename T> Rational<T> &
 operator/=(Rational<T> &, const T &);
 
-// Rational, represent as p/q, for which p and q are primes or 1.
-// Integers are represented as i/1, includes 0 and 1.
+// The Rational, represented as p/q, for which p and q are primes or 1.
+// Integers are represented as i/1, including 1, -1 and 0.
 // If T is unsigned type, the Rational will be unsigned. (Well, I don't know).
-template <typename T>  // To suppoer BigInteger, possibly one day.
+template <typename T>
 class Rational {
  public:
   Rational();
@@ -130,9 +130,16 @@ Rational<T>::operator=(const T &value) {
 template <typename T>
 Rational<T>::Rational(const T &numerator, const T &denominator)
     : numerator_(numerator), denominator_(denominator) {
+  if (denominator == 0)
+    throw std::invalid_argument("Rational::Rational(const T &, const T &)");
   if (denominator < 0) {
     this->numerator_ = -this->numerator_;
     this->denominator_ = -this->denominator_;
+  }
+  T divisor = gcd(numerator, denominator);
+  if (divisor != 1) {
+    this->numerator_ /= divisor;
+    this->denominator_ /= divisor;
   }
 }
 
