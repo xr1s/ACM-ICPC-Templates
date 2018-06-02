@@ -25,6 +25,12 @@ class BigInteger {
   friend std::istream &operator>>(std::istream &, BigInteger &);
   friend BigInteger &operator+=(BigInteger &, const BigInteger &);
   friend BigInteger &operator-=(BigInteger &, const BigInteger &);
+
+  friend BigInteger &operator&=(BigInteger &, const BigInteger &);
+  friend BigInteger &operator|=(BigInteger &, const BigInteger &);
+  friend BigInteger &operator^=(BigInteger &, const BigInteger &);
+  friend BigInteger &operator~(BigInteger &);
+
   friend bool operator==(const BigInteger &, const BigInteger &);
   friend bool operator<(const BigInteger &, const BigInteger &);
  private:
@@ -232,6 +238,64 @@ BigInteger &operator-=(BigInteger &lhs, const BigInteger &rhs) {
 BigInteger operator-(const BigInteger &lhs, const BigInteger &rhs) {
   BigInteger result = lhs;
   return result -= rhs;
+}
+
+BigInteger &operator&=(BigInteger &lhs, const BigInteger &rhs) {
+  if (lhs.value.size() > rhs.value.size())
+    lhs.value.resize(rhs.value.size());
+  lhs.negative &= rhs.negative;
+  std::transform(lhs.value.begin(), lhs.value.end(),
+                 rhs.value.begin(), lhs.value.begin(),
+                 std::bit_and<uint32_t>());
+  lhs.trimLeadingZeros_();
+  return lhs;
+}
+
+BigInteger operator&(const BigInteger &lhs, const BigInteger &rhs) {
+  BigInteger result = lhs;
+  return result &= rhs;
+}
+
+BigInteger &operator|=(BigInteger &lhs, const BigInteger &rhs) {
+  if (lhs.value.size() < rhs.value.size())
+    lhs.value.resize(rhs.value.size());
+  lhs.negative |= rhs.negative;
+  std::transform(lhs.value.begin(), lhs.value.end(),
+                 rhs.value.begin(), lhs.value.begin(),
+                 std::bit_or<uint32_t>());
+  return lhs;
+}
+
+BigInteger operator|(const BigInteger &lhs, const BigInteger &rhs) {
+  BigInteger result = lhs;
+  return result |= rhs;
+}
+
+BigInteger &operator^=(BigInteger &lhs, const BigInteger &rhs) {
+  const size_t size = std::min(lhs.value.size(), rhs.value.size());
+  if (lhs.value.size() == size) {
+    lhs.value.resize(rhs.value.size());
+    std::copy(rhs.value.begin() + size, rhs.value.end(),
+              lhs.value.begin() + size);
+  }
+  lhs.negative ^= rhs.negative;
+  std::transform(lhs.value.begin(), lhs.value.begin() + size,
+                 rhs.value.begin(), lhs.value.begin(),
+                 std::bit_xor<uint32_t>());
+  lhs.trimLeadingZeros_();
+  return lhs;
+}
+
+BigInteger operator^(const BigInteger &lhs, const BigInteger &rhs) {
+  BigInteger result = lhs;
+  return result ^= rhs;
+}
+
+BigInteger &operator~(BigInteger &self) {
+  // TODO: operator++
+  self += 1;
+  self.negative ^= 1;
+  return self;
 }
 
 void BigInteger::getDec_(std::istream &is) {
