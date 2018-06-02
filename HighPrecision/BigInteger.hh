@@ -1,6 +1,8 @@
 #pragma once
 
+#include <algorithm>
 #include <iostream>
+#include <numeric>
 // cstdint is a C++11 header. Weired.
 #include <stdint.h>
 #include <vector>
@@ -8,10 +10,23 @@
 // Arbitrary precision integer class.
 // Each cell of std::vector save 32 bits.
 class BigInteger {
+ public:
+  BigInteger();
+  BigInteger(const BigInteger &);
+  BigInteger &operator=(const BigInteger &);
+#if __cplusplus >= 201103L
+  BigInteger(BigInteger &&);
+  BigInteger &operator=(BigInteger &&);
+#endif
+  BigInteger(int64_t);
   // Only std::basic_{i,o}stream<char, std::char_traits<char> >
   // (a.k.a. std::istream, std::ostream) are useful in ACM-ICPC.
   friend std::ostream & operator<<(std::ostream &, const BigInteger &);
   friend std::istream &operator>>(std::istream &, BigInteger &);
+  friend BigInteger &operator+=(BigInteger &, const BigInteger &);
+  friend BigInteger &operator-=(BigInteger &, const BigInteger &);
+  friend bool operator==(const BigInteger &, const BigInteger &);
+  friend bool operator<(const BigInteger &, const BigInteger &);
  private:
   std::vector<uint32_t> value;
   bool negative;
@@ -26,9 +41,43 @@ class BigInteger {
   void putOct_(std::ostream &) const;
   void getBin_(std::istream &);
   void putBin_(std::ostream &) const;
-
+  void trimLeadingZeros_();
 };
 const uint64_t BigInteger::base = static_cast<uint64_t>(1) << 32;
+
+BigInteger::BigInteger()
+    : value(1, 0), negative(false) {
+}
+
+BigInteger::BigInteger(const BigInteger &that)
+    : value(that.value), negative(that.negative) {
+}
+
+BigInteger &BigInteger::operator=(const BigInteger &that) {
+  this->value = that.value;
+  this->negative = that.negative;
+  return *this;
+}
+
+#if __cplusplus >= 201103L
+BigInteger::BigInteger(BigInteger &&that)
+    : value{std::move(that.value)}, negative(that.negative) {
+}
+
+BigInteger &BigInteger::operator=(BigInteger &&that) {
+  this->value = std::move(that.value);
+  this->negative = that.negative;
+  return *this;
+}
+#endif
+
+BigInteger::BigInteger(int64_t value)
+    : negative(value < 0) {
+  const int64_t base = static_cast<int64_t>(BigInteger::base);
+  this->value.push_back(std::abs(value % base));
+  if ((value /= base))
+    this->value.push_back(std::abs(value));
+}
 
 std::istream &operator>>(std::istream &is, BigInteger &self) {
   char cursor;
@@ -75,6 +124,114 @@ std::ostream &operator<<(std::ostream &os, const BigInteger &self) {
     break;
   }
   return os;
+}
+
+bool operator==(const BigInteger &lhs, const BigInteger &rhs) {
+  if (lhs.negative != rhs.negative) return false;
+  if (lhs.value.size() != rhs.value.size()) return false;
+  return std::equal(lhs.value.begin(), lhs.value.end(), rhs.value.begin());
+}
+
+bool operator!=(const BigInteger &lhs, const BigInteger &rhs) {
+  return !(lhs == rhs);
+}
+
+bool operator<(const BigInteger &lhs, const BigInteger &rhs) {
+  if (lhs.negative != rhs.negative) return lhs.negative;
+  if (lhs.value.size() != rhs.value.size())
+    return lhs.value.size() < rhs.value.size();
+  return lhs.negative ^ std::equal(lhs.value.rbegin(), lhs.value.rend(),
+                    rhs.value.rbegin(),
+                    std::less<uint32_t>());
+}
+
+bool operator>=(const BigInteger &lhs, const BigInteger &rhs) {
+  return !(lhs < rhs);
+}
+
+bool operator>(const BigInteger &lhs, const BigInteger &rhs) {
+  return rhs < lhs;
+}
+
+bool operator<=(const BigInteger &lhs, const BigInteger &rhs) {
+  return !(rhs < lhs);
+}
+
+BigInteger &operator+=(BigInteger &lhs, const BigInteger &rhs) {
+  typedef std::vector<uint32_t>::iterator Iter;
+  typedef std::vector<uint32_t>::const_iterator CIter;
+  if (lhs.negative == rhs.negative) {
+    lhs.value.reserve(rhs.value.size() + 1);
+    if (lhs.value.size() < rhs.value.size())
+      lhs.value.resize(rhs.value.size(), 0);
+    Iter i = lhs.value.begin();
+    CIter j = rhs.value.begin();
+    uint64_t value = 0;
+    while (j != rhs.value.end()) {
+      value = value + *i + *j++;  // Promote to uint64_t.
+      *i++ = value % BigInteger::base;
+      value /= BigInteger::base;
+    }
+    while (value && i != lhs.value.end()) {
+      value = value + *i;
+      *i++ = value % BigInteger::base;
+      value /= BigInteger::base;
+    }
+    if (value) lhs.value.push_back(value);
+  } else {
+    lhs.negative ^= 1;
+    lhs -= rhs;
+    lhs.negative ^= 1;
+  }
+  return lhs;
+}
+
+BigInteger operator+(const BigInteger &lhs, const BigInteger &rhs) {
+  BigInteger result = lhs;
+  return result += rhs;
+}
+
+BigInteger &operator-=(BigInteger &lhs, const BigInteger &rhs) {
+  typedef std::vector<uint32_t>::iterator Iter;
+  typedef std::vector<uint32_t>::const_iterator CIter;
+  if (lhs.negative == rhs.negative) {
+    lhs.value.reserve(rhs.value.size() + 1);
+    if (lhs.value.size() < rhs.value.size())
+      lhs.value.resize(rhs.value.size(), 0);
+    Iter i = lhs.value.begin();
+    CIter j = rhs.value.begin();
+    int64_t value = 0;
+    if ((lhs > rhs) ^ lhs.negative) {  // abs(lhs) > abs(rhs)
+      while (j != rhs.value.end()) {
+        value = value + *i - *j++;  // Promote to int64_t
+        *i++ = value < 0 ? value + BigInteger::base : value;
+        value = value < 0 ? -1 : 0;
+      }
+      while (value && i != lhs.value.end()) {
+        value = value + *i;
+        *i++ = value < 0 ? value + BigInteger::base : value;
+        value = value < 0 ? -1 : 0;
+      }
+    } else {
+      lhs.negative = !lhs.negative;
+      while (j != rhs.value.end()) {
+        value = value + *j++ - *i;
+        *i++ = value < 0 ? value + BigInteger::base : value;
+        value = value < 0 ? -1 : 0;
+      }
+    }
+    lhs.trimLeadingZeros_();
+  } else {
+    lhs.negative ^= 1;
+    lhs += rhs;
+    lhs.negative ^= 1;
+  }
+  return lhs;
+}
+
+BigInteger operator-(const BigInteger &lhs, const BigInteger &rhs) {
+  BigInteger result = lhs;
+  return result -= rhs;
 }
 
 void BigInteger::getDec_(std::istream &is) {
@@ -135,7 +292,6 @@ void BigInteger::getDec_(std::istream &is) {
 }
 
 void BigInteger::putDec_(std::ostream &os) const {
-  typedef std::vector<uint32_t>::iterator Iter;
   typedef std::vector<uint32_t>::reverse_iterator RevIter;
   const static uint_fast32_t logBase = 9, pow10[] = {
     1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000,
@@ -149,12 +305,13 @@ void BigInteger::putDec_(std::ostream &os) const {
   RevIter head = binary.rbegin();
   while (head + 1 != binary.rend()) {
     uint64_t value = 0;
-    for (RevIter i = head++; i != binary.rend(); ++i) {
+    for (RevIter i = head; i != binary.rend(); ++i) {
       value = value * BigInteger::base | *i;
       *i = value / pow10[logBase];
       value %= pow10[logBase];
     }
     decimal.push_back(value);
+    if (!*head) ++head;
   }
   if (*head) decimal.push_back(*head);
   os << decimal.back();
@@ -164,4 +321,12 @@ void BigInteger::putDec_(std::ostream &os) const {
       if (*i < pow10[j]) os.put('0'); else break;
     os << *i;
   }
+}
+
+void BigInteger::trimLeadingZeros_() {
+  size_t len = this->value.size();
+  while (!this->value[len] && len) --len;
+  this->value.resize(len + 1);
+  if (!len && !this->value.front())
+    this->negative = false;  // Take care of negative zero.
 }
