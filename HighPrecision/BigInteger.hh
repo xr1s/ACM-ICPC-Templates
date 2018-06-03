@@ -23,13 +23,15 @@ class BigInteger {
   // (a.k.a. std::istream, std::ostream) are useful in ACM-ICPC.
   friend std::ostream & operator<<(std::ostream &, const BigInteger &);
   friend std::istream &operator>>(std::istream &, BigInteger &);
+  friend BigInteger &operator++(BigInteger &);
+  friend BigInteger &operator--(BigInteger &);
   friend BigInteger &operator+=(BigInteger &, const BigInteger &);
   friend BigInteger &operator-=(BigInteger &, const BigInteger &);
 
   friend BigInteger &operator&=(BigInteger &, const BigInteger &);
   friend BigInteger &operator|=(BigInteger &, const BigInteger &);
   friend BigInteger &operator^=(BigInteger &, const BigInteger &);
-  friend BigInteger &operator~(BigInteger &);
+  friend BigInteger operator~(const BigInteger &);
 
   friend bool operator==(const BigInteger &, const BigInteger &);
   friend bool operator<(const BigInteger &, const BigInteger &);
@@ -47,6 +49,7 @@ class BigInteger {
   void putOct_(std::ostream &) const;
   void getBin_(std::istream &);
   void putBin_(std::ostream &) const;
+  void eliminateNegativeZero_();
   void trimLeadingZeros_();
 };
 const uint64_t BigInteger::base = static_cast<uint64_t>(1) << 32;
@@ -163,6 +166,44 @@ bool operator<=(const BigInteger &lhs, const BigInteger &rhs) {
   return !(rhs < lhs);
 }
 
+BigInteger &operator++(BigInteger &self) {
+  typedef std::vector<uint32_t>::iterator Iter;
+  Iter i = self.value.begin();
+  if (!self.negative) {
+    while (i != self.value.end() && !++*i++);
+    if (*(i - 1) == 0) self.value.push_back(1);
+  } else {
+    self.negative ^= 1;
+    --self;
+    self.negative ^= 1;
+  }
+  return self;
+}
+
+BigInteger operator++(const BigInteger &self, int) {
+  BigInteger result = self;
+  return ++result;
+}
+
+BigInteger &operator--(BigInteger &self) {
+  typedef std::vector<uint32_t>::iterator Iter;
+  Iter i = self.value.begin();
+  if (!self.negative) {
+    while (i != self.value.end() && !~--*i++);
+    self.trimLeadingZeros_();
+  } else {
+    self.negative ^= 1;
+    ++self;
+    self.negative ^= 1;
+  }
+  return self;
+}
+
+BigInteger operator--(const BigInteger &self, int) {
+  BigInteger result = self;
+  return --result;
+}
+
 BigInteger &operator+=(BigInteger &lhs, const BigInteger &rhs) {
   typedef std::vector<uint32_t>::iterator Iter;
   typedef std::vector<uint32_t>::const_iterator CIter;
@@ -188,6 +229,7 @@ BigInteger &operator+=(BigInteger &lhs, const BigInteger &rhs) {
     lhs.negative ^= 1;
     lhs -= rhs;
     lhs.negative ^= 1;
+    lhs.eliminateNegativeZero_();
   }
   return lhs;
 }
@@ -273,11 +315,9 @@ BigInteger operator|(const BigInteger &lhs, const BigInteger &rhs) {
 
 BigInteger &operator^=(BigInteger &lhs, const BigInteger &rhs) {
   const size_t size = std::min(lhs.value.size(), rhs.value.size());
-  if (lhs.value.size() == size) {
-    lhs.value.resize(rhs.value.size());
-    std::copy(rhs.value.begin() + size, rhs.value.end(),
-              lhs.value.begin() + size);
-  }
+  if (lhs.value.size() == size)
+    lhs.value.insert(lhs.value.end(),
+                     rhs.value.begin() + size, rhs.value.end());
   lhs.negative ^= rhs.negative;
   std::transform(lhs.value.begin(), lhs.value.begin() + size,
                  rhs.value.begin(), lhs.value.begin(),
@@ -291,11 +331,11 @@ BigInteger operator^(const BigInteger &lhs, const BigInteger &rhs) {
   return result ^= rhs;
 }
 
-BigInteger &operator~(BigInteger &self) {
-  // TODO: operator++
-  self += 1;
-  self.negative ^= 1;
-  return self;
+BigInteger operator~(const BigInteger &self) {
+  BigInteger result = self;
+  ++result;
+  result.negative ^= 1;
+  return result;
 }
 
 void BigInteger::getDec_(std::istream &is) {
@@ -387,10 +427,14 @@ void BigInteger::putDec_(std::ostream &os) const {
   }
 }
 
+void BigInteger::eliminateNegativeZero_() {
+  if (this->value.size() == 1 && !this->value.front())
+    this->negative = false;
+}
+
 void BigInteger::trimLeadingZeros_() {
   size_t len = this->value.size();
   while (!this->value[len] && len) --len;
   this->value.resize(len + 1);
-  if (!len && !this->value.front())
-    this->negative = false;  // Take care of negative zero.
+  this->eliminateNegativeZero_();
 }
