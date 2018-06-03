@@ -180,9 +180,8 @@ BigInteger &operator++(BigInteger &self) {
   return self;
 }
 
-BigInteger operator++(const BigInteger &self, int) {
-  BigInteger result = self;
-  return ++result;
+BigInteger operator++(BigInteger &self, int) {
+  BigInteger result = self; ++self; return result;
 }
 
 BigInteger &operator--(BigInteger &self) {
@@ -199,9 +198,8 @@ BigInteger &operator--(BigInteger &self) {
   return self;
 }
 
-BigInteger operator--(const BigInteger &self, int) {
-  BigInteger result = self;
-  return --result;
+BigInteger operator--(BigInteger &self, int) {
+  BigInteger result = self; --self; return result;
 }
 
 BigInteger &operator+=(BigInteger &lhs, const BigInteger &rhs) {
