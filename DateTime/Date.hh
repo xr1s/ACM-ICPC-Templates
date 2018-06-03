@@ -3,13 +3,13 @@
 class Date {
  public:
   enum Weekday {
+    SUNDAY = 0,
     MONDAY = 1,
     TUESDAY = 2,
     WEDNESDAY = 3,
     THURSDAY = 4,
     FRIDAY = 5,
-    SATURDAY = 6,
-    SUNDAY = 7
+    SATURDAY = 6
   };
   enum Month {
     JANUARY = 1,
@@ -176,7 +176,7 @@ Date operator++(Date &self, int) {
 }
 
 Date &operator--(Date &self) {
-  if (self.day_-- == 0) {
+  if (self.day_-- == 1) {
     if (self.month_-- == Date::JANUARY) --self.year_;
     self.day_ = Date::dayInMonth(self.year_, self.month_);
   }
@@ -212,5 +212,5 @@ Date::Weekday Date::weekday() const {
   const int y = year % 100;
   const int d = this->day_;
   int w = (y + y / 4 + c / 4 - c * 2 + (m + 1) * 26 / 10 + d - 1) % 7;
-  return static_cast<Date::Weekday>(w < 1 ? w + 7 : w);
+  return static_cast<Date::Weekday>(w < 0 ? w + 7 : w);
 }
