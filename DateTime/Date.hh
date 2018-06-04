@@ -25,22 +25,27 @@ class Date {
     NOVEMBER = 11,
     DECEMBER = 12
   };
-  static bool isLeap(int);
-  static int dayInMonth(int, Month);
   Date(int, Month = JANUARY, int = 1);
   Date(int, int = JANUARY, int = 1);
   friend Date &operator++(Date &);
   friend Date &operator--(Date &);
+  friend int operator-(const Date &, const Date &);
 
   int year() const;
   Month month() const;
   int day() const;
   Weekday weekday() const;
+  int dayOfYear() const;
+
+  static bool isLeap(int);
+  static int dayInMonth(int, Month);
  private:
   int year_;
   Month month_;
   int day_;
   const static int dayInMonth_[];
+  // Invoker should guarantee that lhs <= rhs.
+  static int yearDiff_(int, int);
 };
 const int Date::dayInMonth_[] = {
   0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31,
@@ -139,7 +144,10 @@ Date::Weekday operator++(Date::Weekday &self, int) {
 }
 
 bool Date::isLeap(int y) {
-  return y % 400 == 0 || (y % 4 == 0 && y % 100 != 0);
+  bool result = false;
+  result |= y % 4 == 0 && y % 100 != 0;
+  result |= y % 400 == 0 && y % 3200 != 0;
+  return result;
 }
 
 int Date::dayInMonth(int y, Month m) {
@@ -160,6 +168,34 @@ Date::Date(int y, int m, int d)
     throw std::invalid_argument("Date::Date(int, int, int) month");
   if (d < 1 || dayInMonth(y, static_cast<Date::Month>(m)) < d)
     throw std::invalid_argument("Date::Date(int, int, int) day");
+}
+
+bool operator==(const Date &lhs, const Date &rhs) {
+  return lhs.year() == rhs.year()
+      && lhs.month() == rhs.month()
+      && lhs.day() == rhs.day();
+}
+
+bool operator!=(const Date &lhs, const Date &rhs) {
+  return !(lhs == rhs);
+}
+
+bool operator<(const Date &lhs, const Date &rhs) {
+  if (lhs.year() != rhs.year()) return lhs.year() < rhs.year();
+  if (lhs.month() != rhs.month()) return lhs.month() < rhs.month();
+  return lhs.day() < rhs.day();
+}
+
+bool operator>=(const Date &lhs, const Date &rhs) {
+  return !(lhs < rhs);
+}
+
+bool operator>(const Date &lhs, const Date &rhs) {
+  return rhs < lhs;
+}
+
+bool operator<=(const Date &lhs, const Date &rhs) {
+  return !(rhs < lhs);
 }
 
 Date &operator++(Date &self) {
@@ -188,8 +224,12 @@ Date operator--(Date &self, int) {
 }
 
 int operator-(const Date &lhs, const Date &rhs) {
-  // TODO
-  return 0;
+  bool negative = lhs < rhs;
+  Date l = lhs, r = rhs;
+  if (negative) std::swap(l, r);
+  int result = Date::yearDiff_(r.year_, l.year_);
+  result = result + l.dayOfYear() - r.dayOfYear();
+  return negative ? -result : result;
 }
 
 int Date::year() const {
@@ -213,4 +253,28 @@ Date::Weekday Date::weekday() const {
   const int d = this->day_;
   int w = (y + y / 4 + c / 4 - c * 2 + (m + 1) * 26 / 10 + d - 1) % 7;
   return static_cast<Date::Weekday>(w < 0 ? w + 7 : w);
+}
+
+int Date::dayOfYear() const {
+  int result = 0;
+  for (int i = 1; i != this->month_; ++i)
+    result += Date::dayInMonth(this->year_, static_cast<Month>(i));
+  return result + this->day_ - 1;
+}
+
+int Date::yearDiff_(int lhs, int rhs) {
+  int result = (rhs - lhs) * 365;
+  lhs = (lhs + 3) / 4;
+  rhs = (rhs + 3) / 4;
+  result += rhs - lhs;
+  lhs = (lhs + 24) / 25;
+  rhs = (rhs + 24) / 25;
+  result -= rhs - lhs;
+  lhs = (lhs + 3) / 4;
+  rhs = (rhs + 3) / 4;
+  result += rhs - lhs;
+  lhs = (lhs + 7) / 8;
+  rhs = (rhs + 7) / 8;
+  result -= rhs - lhs;
+  return result;
 }
