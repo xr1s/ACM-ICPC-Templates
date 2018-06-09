@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <iostream>
 #include <numeric>
-// cstdint is a C++11 header. Weired.
+// cstdint is a C++11 header. Weird.
 #include <stdint.h>
 #include <vector>
 
@@ -11,6 +11,8 @@
 // Each cell of std::vector save 32 bits.
 class BigInteger {
  public:
+  typedef std::vector<uint64_t> Container;
+
   BigInteger();
   BigInteger(const BigInteger &);
   BigInteger &operator=(const BigInteger &);
@@ -18,7 +20,7 @@ class BigInteger {
   BigInteger(BigInteger &&);
   BigInteger &operator=(BigInteger &&);
 #endif
-  BigInteger(int64_t);
+  BigInteger(int64_t);  // broken, FIXME
   // Only std::basic_{i,o}stream<char, std::char_traits<char> >
   // (a.k.a. std::istream, std::ostream) are useful in ACM-ICPC.
   friend std::ostream & operator<<(std::ostream &, const BigInteger &);
@@ -38,7 +40,7 @@ class BigInteger {
   friend bool operator==(const BigInteger &, const BigInteger &);
   friend bool operator<(const BigInteger &, const BigInteger &);
  private:
-  std::vector<uint32_t> value;
+  Container value;
   bool negative;
   const static uint64_t base;
   const static uint64_t mod;
@@ -54,19 +56,19 @@ class BigInteger {
   void getBin_(std::istream &);
   void putBin_(std::ostream &) const;
   // Helper function for operator*=, /= and %=
-  uint64_t modpow_(uint64_t, uint64_t);
-  uint64_t modinv_(int64_t, int64_t);
+  static uint64_t modpow_(uint64_t, uint64_t);
+  static uint64_t modinv_(int64_t, int64_t);
   // Number Theory Transform.
   void NTT_(uint64_t, bool);
 
   void eliminateNegativeZero_();
   void trimLeadingZeros_();
 };
-const uint64_t BigInteger::base = static_cast<uint64_t>(1) << 32;
+const uint64_t BigInteger::base = static_cast<uint64_t>(1) << 31;
 // With BigInteger::mod = (1 << 30) * 3 + 1,
 // BigInteger can proccess 4GB data,
 // which is fully adequate for ACM-ICPC.
-const uint64_t BigInteger::mod = (1u << 30) * 3 + 1;
+const uint64_t BigInteger::mod = (static_cast<uint64_t>(1) << 59) * 9 + 1;
 const uint64_t BigInteger::root = 5;
 
 BigInteger::BigInteger()
@@ -161,12 +163,14 @@ bool operator!=(const BigInteger &lhs, const BigInteger &rhs) {
 }
 
 bool operator<(const BigInteger &lhs, const BigInteger &rhs) {
+  typedef BigInteger::Container::const_reverse_iterator CRevIter;
   if (lhs.negative != rhs.negative) return lhs.negative;
   if (lhs.value.size() != rhs.value.size())
-    return lhs.value.size() < rhs.value.size();
-  return lhs.negative ^ std::equal(lhs.value.rbegin(), lhs.value.rend(),
-                                   rhs.value.rbegin(),
-                                   std::less<uint32_t>());
+    return (lhs.value.size() < rhs.value.size()) ^ lhs.negative;
+  CRevIter l = lhs.value.rbegin(), r = rhs.value.rbegin();
+  for (; l != lhs.value.rend(); ++l, ++r)
+    if (*l != *r) return (*l < *r) ^ lhs.negative;
+  return false;
 }
 
 bool operator>=(const BigInteger &lhs, const BigInteger &rhs) {
@@ -182,7 +186,7 @@ bool operator<=(const BigInteger &lhs, const BigInteger &rhs) {
 }
 
 BigInteger &operator++(BigInteger &self) {
-  typedef std::vector<uint32_t>::iterator Iter;
+  typedef BigInteger::Container::iterator Iter;
   Iter i = self.value.begin();
   if (!self.negative) {
     while (i != self.value.end() && !++*i++);
@@ -199,7 +203,7 @@ BigInteger operator++(BigInteger &self, int) {
 }
 
 BigInteger &operator--(BigInteger &self) {
-  typedef std::vector<uint32_t>::iterator Iter;
+  typedef BigInteger::Container::iterator Iter;
   Iter i = self.value.begin();
   if (!self.negative) {
     while (i != self.value.end() && !~--*i++);
@@ -216,8 +220,8 @@ BigInteger operator--(BigInteger &self, int) {
 }
 
 BigInteger &operator+=(BigInteger &lhs, const BigInteger &rhs) {
-  typedef std::vector<uint32_t>::iterator Iter;
-  typedef std::vector<uint32_t>::const_iterator CIter;
+  typedef BigInteger::Container::iterator Iter;
+  typedef BigInteger::Container::const_iterator CIter;
   if (lhs.negative == rhs.negative) {
     lhs.value.reserve(rhs.value.size() + 1);
     if (lhs.value.size() < rhs.value.size())
@@ -251,8 +255,8 @@ BigInteger operator+(const BigInteger &lhs, const BigInteger &rhs) {
 }
 
 BigInteger &operator-=(BigInteger &lhs, const BigInteger &rhs) {
-  typedef std::vector<uint32_t>::iterator Iter;
-  typedef std::vector<uint32_t>::const_iterator CIter;
+  typedef BigInteger::Container::iterator Iter;
+  typedef BigInteger::Container::const_iterator CIter;
   if (lhs.negative == rhs.negative) {
     lhs.value.reserve(rhs.value.size() + 1);
     if (lhs.value.size() < rhs.value.size())
@@ -295,18 +299,19 @@ BigInteger operator-(const BigInteger &lhs, const BigInteger &rhs) {
 
 // TODO: run benchmark to determine the critical section where
 // O(|I|²) multiply is less or as fast as O(|I|log|I|) one.
+// broken, FIXME
 BigInteger &operator*=(BigInteger &lhs, const BigInteger &rhs) {
+  return lhs;
+  uint64_t logN = 0;
+  lhs.negative ^= rhs.negative;
   BigInteger &l = lhs, r = rhs;
-  uint64_t logN = 0, value;
-  const size_t size = std::max(l.value.size(), r.value.size());
+  const size_t size = std::max(lhs.value.size(), rhs.value.size());
   while (static_cast<size_t>(1) << logN < size << 1) ++logN;
   const size_t n = static_cast<size_t>(1) << logN;
   l.value.resize(n); l.NTT_(logN, false);
   r.value.resize(n); r.NTT_(logN, false);
-  for (size_t i = 0; i != n; ++i) {
-    value = static_cast<uint64_t>(l.value[i]) * r.value[i];
-    l.value[i] = value % BigInteger::mod;
-  }
+  for (size_t i = 0; i != n; ++i)
+    l.value[i] = l.value[i] * r.value[i];
   // TODO: lazy evaluation, optimize for continually multiplying.
   l.NTT_(logN, true);
   l.trimLeadingZeros_();
@@ -324,7 +329,7 @@ BigInteger &operator&=(BigInteger &lhs, const BigInteger &rhs) {
   lhs.negative &= rhs.negative;
   std::transform(lhs.value.begin(), lhs.value.end(),
                  rhs.value.begin(), lhs.value.begin(),
-                 std::bit_and<uint32_t>());
+                 std::bit_and<uint64_t>());
   lhs.trimLeadingZeros_();
   return lhs;
 }
@@ -340,7 +345,7 @@ BigInteger &operator|=(BigInteger &lhs, const BigInteger &rhs) {
   lhs.negative |= rhs.negative;
   std::transform(lhs.value.begin(), lhs.value.end(),
                  rhs.value.begin(), lhs.value.begin(),
-                 std::bit_or<uint32_t>());
+                 std::bit_or<uint64_t>());
   return lhs;
 }
 
@@ -357,7 +362,7 @@ BigInteger &operator^=(BigInteger &lhs, const BigInteger &rhs) {
   lhs.negative ^= rhs.negative;
   std::transform(lhs.value.begin(), lhs.value.begin() + size,
                  rhs.value.begin(), lhs.value.begin(),
-                 std::bit_xor<uint32_t>());
+                 std::bit_xor<uint64_t>());
   lhs.trimLeadingZeros_();
   return lhs;
 }
@@ -377,7 +382,7 @@ BigInteger operator~(const BigInteger &self) {
 void BigInteger::getDec_(std::istream &is) {
   typedef std::vector<uint32_t>::iterator Iter;
   typedef std::vector<uint32_t>::reverse_iterator RevIter;
-  const static uint_fast32_t logBase = 9, pow10[] = {
+  const static uint32_t logBase = 9, pow10[] = {
     1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000,
   };
   this->value.clear();
@@ -403,8 +408,8 @@ void BigInteger::getDec_(std::istream &is) {
   // Save in least significant digit first, adjust.
   if (logLen != 0) {
     decimal.push_back(value);
-    const uint_fast32_t shift = pow10[logBase - logLen];
-    const uint_fast32_t len = pow10[logLen];
+    const uint32_t shift = pow10[logBase - logLen];
+    const uint32_t len = pow10[logLen];
     RevIter next = decimal.rbegin(), prev = next++;
     while (next != decimal.rend()) {
       *prev++ += *next % shift * len;
@@ -417,33 +422,34 @@ void BigInteger::getDec_(std::istream &is) {
     return;
   }
   this->value.reserve(decimal.size());
-  // Convert from base-1000000000 to base-4294967294.
+  // Convert from base-10^m to base-2^n
   Iter head = decimal.begin();
-  while (head + 1 != decimal.end()) {
-    value = *head++;
+  while (head != decimal.end()) {
+    value = 0;
     for (Iter i = head; i != decimal.end(); ++i) {
       value = value * pow10[logBase] + *i;
       *i = value / BigInteger::base;
       value %= BigInteger::base;
     }
     this->value.push_back(value);
+    while (head != decimal.end() && !*head) ++head;
   }
-  if (*head) this->value.push_back(*head);
 }
 
 void BigInteger::putDec_(std::ostream &os) const {
   typedef std::vector<uint32_t>::reverse_iterator RevIter;
-  const static uint_fast32_t logBase = 9, pow10[] = {
+  const static uint32_t logBase = 9, pow10[] = {
     1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000,
   };
   if (this->value.size() == 1 && this->value.front() == 0) {
     os.put('0');
     return;
   }
-  // Convert from base-4294967294 to base-1000000000.
-  std::vector<uint32_t> binary = this->value, decimal;
+  // Convert from base-2^n to base-10^m.
+  std::vector<uint32_t> binary, decimal;
+  binary.assign(this->value.begin(), this->value.end());
   RevIter head = binary.rbegin();
-  while (head + 1 != binary.rend()) {
+  while (head != binary.rend()) {
     uint64_t value = 0;
     for (RevIter i = head; i != binary.rend(); ++i) {
       value = value * BigInteger::base | *i;
@@ -451,9 +457,8 @@ void BigInteger::putDec_(std::ostream &os) const {
       value %= pow10[logBase];
     }
     decimal.push_back(value);
-    if (!*head) ++head;
+    while (head != binary.rend() && !*head) ++head;
   }
-  if (*head) decimal.push_back(*head);
   os << decimal.back();
   decimal.pop_back();
   for (RevIter i = decimal.rbegin(); i != decimal.rend(); ++i) {
@@ -466,8 +471,8 @@ void BigInteger::putDec_(std::ostream &os) const {
 uint64_t BigInteger::modpow_(uint64_t base, uint64_t expo) {
   uint64_t retn = 1;
   do {
-    if (expo & 1) retn = retn * base % mod;
-    if (expo ^ 1) base = base * base % mod;
+    if (expo & 1) retn = retn * base % BigInteger::mod;
+    if (expo ^ 1) base = base * base % BigInteger::mod;
   } while (expo >>= 1);
   return retn;
 }
@@ -486,14 +491,22 @@ void BigInteger::NTT_(uint64_t logN, bool inverse) {
   // Initialization of unit roots w.
   const uint64_t n = this->value.size();
   const uint64_t g = modpow_(root, mod >> logN);
-  uint64_t *const w = new uint64_t[n];
-  for (size_t i = 0; i != n; ++i)
-    w[i] = i ? w[i - 1] * g % mod : 1;
+  const uint64_t gh = g >> 32, gl = g & 0xffffffff;
+  const uint64_t i64maxmod = -BigInteger::mod;
+  uint64_t *const w = new uint64_t[n]; w[0] = 1;
+  for (size_t i = 1; i != n; ++i) {
+//    w[i] = w[i - 1] * g % mod;
+    const uint64_t wh = w[i] >> 32, wl = w[i] & 0xffffffff;
+    const uint64_t m = wh * gl + wl * gh;
+    const uint64_t h = wh * gh + (m >> 32);
+    const uint64_t l = wl * gl + (m & 0xffffffff);
+  }
   if (inverse) {
     std::reverse(w + 1, w + n);
     const uint64_t inv = modinv_(n, mod);
-    for (size_t i = 0; i != n; ++i)
-      this->value[i] = this->value[i] * inv % mod;
+    for (size_t i = 0; i != n; ++i) {
+      this->value[i] = this->value[i] * inv % BigInteger::mod;
+    }
   }
   // Main part of transforming.
   for (size_t i = 0, j = 0; i != n; ++i) {
@@ -505,11 +518,16 @@ void BigInteger::NTT_(uint64_t logN, bool inverse) {
       for (size_t k = 0; k != i; ++k) {
         const uint64_t z = this->value[i + j + k] * w[I * k] % mod;
         if (this->value[j + k] < z)
-          this->value[i + j + k] = this->value[j + k] + mod - z;
+          this->value[i + j + k] = this->value[j + k] - z;
         else this->value[i + j + k] = this->value[j + k] - z;
         if (this->value[j + k] + z < mod) this->value[j + k] += z;
         else this->value[j + k] = this->value[j + k] + z - mod;
       }
+  if (inverse) {
+    const uint64_t inv = modinv_(n, mod);
+    for (size_t i = 0; i != n; ++i)
+      this->value[i] = this->value[i] * inv;
+  }
   delete[] w;
 }
 
@@ -519,8 +537,8 @@ void BigInteger::eliminateNegativeZero_() {
 }
 
 void BigInteger::trimLeadingZeros_() {
-  size_t len = this->value.size();
-  while (!this->value[len] && len) --len;
+  size_t len = this->value.size() - 1;
+  while (len && !this->value[len]) --len;
   this->value.resize(len + 1);
   this->eliminateNegativeZero_();
 }
