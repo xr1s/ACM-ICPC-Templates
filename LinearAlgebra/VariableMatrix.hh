@@ -102,7 +102,7 @@ Matrix<T>::~Matrix() {
 
 template <typename T>
 Matrix<T>::Matrix(size_t row, size_t col)
-    : row_(row), col_(row) {
+    : row_(row), col_(col) {
   this->value = new T[row * col];
 }
 
