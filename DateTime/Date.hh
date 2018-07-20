@@ -1,179 +1,134 @@
 #include <stdexcept>
 
+// Gregorian calender, saved in julian day number.
 class Date {
  public:
   enum Weekday {
-    SUNDAY = 0,
-    MONDAY = 1,
-    TUESDAY = 2,
-    WEDNESDAY = 3,
-    THURSDAY = 4,
-    FRIDAY = 5,
-    SATURDAY = 6
+    Sunday, Monday, Tuesday, Wednesday, Thursday, Firday, Saturday,
   };
   enum Month {
-    JANUARY = 1,
-    FEBRUARY = 2,
-    MARCH = 3,
-    APRIL = 4,
-    MAY = 5,
-    JUNE = 6,
-    JULY = 7,
-    AUGUST = 8,
-    SEPTEMBER = 9,
-    OCTOBER = 10,
-    NOVEMBER = 11,
-    DECEMBER = 12
+    January = 1, February, March, April, May, June,
+    July, August, September, October, November, December,
   };
-  Date(int, Month = JANUARY, int = 1);
-  Date(int, int = JANUARY, int = 1);
-  friend Date &operator++(Date &);
-  friend Date &operator--(Date &);
-  friend int operator-(const Date &, const Date &);
+  Date(int, Month = January, int = 1);
+  Date(const Date &);
 
+  int julian() const;
   int year() const;
   Month month() const;
   int day() const;
   Weekday weekday() const;
-  int dayOfYear() const;
 
-  static bool isLeap(int);
+  friend Date &operator++(Date &);
+  friend Date &operator--(Date &);
+  friend Date &operator+=(Date &, int);
+  friend Date &operator-=(Date &, int);
+
+  static bool isLeapYear(int);
   static int dayInMonth(int, Month);
+
  private:
-  int year_;
-  Month month_;
-  int day_;
-  const static int dayInMonth_[];
-  // Invoker should guarantee that lhs <= rhs.
-  static int yearDiff_(int, int);
+  unsigned int jdn;  // Julian Day Number
+  const static int monthLen_[];
+  const static int y, j, m, n, r, p, v, u, s, w, B, C;
 };
-const int Date::dayInMonth_[] = {
+const int Date::monthLen_[] = {
   0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31,
 };
+// Constant variables for converting Julian day number to Gregorian
+// calendar, please refer to https://en.wikipedia.org/wiki/Julian_day
+const int Date::y = 4716, Date::j = 1401, Date::m = 2, Date::n = 12,
+          Date::r = 4, Date::p = 1461, Date::v = 3, Date::u = 5,
+          Date::s = 153, Date::w = 2, Date::B = 274277, Date::C = -38;
 
-Date::Month &operator++(Date::Month &self) {
-  switch (self) { 
-   case Date::JANUARY:
-    return self = Date::FEBRUARY;
-   case Date::FEBRUARY:
-    return self = Date::MARCH;
-   case Date::MARCH:
-    return self = Date::APRIL;
-   case Date::APRIL:
-    return self = Date::MAY;
-   case Date::MAY:
-    return self = Date::JUNE;
-   case Date::JUNE:
-    return self = Date::JULY;
-   case Date::JULY:
-    return self = Date::AUGUST;
-   case Date::AUGUST:
-    return self = Date::SEPTEMBER;
-   case Date::SEPTEMBER:
-    return self = Date::OCTOBER;
-   case Date::OCTOBER:
-    return self = Date::NOVEMBER;
-   case Date::NOVEMBER:
-    return self = Date::DECEMBER;
-   case Date::DECEMBER:
-    return self = Date::JANUARY;
-  }
-  return self;
+Date::Date(const Date &that)
+    : jdn(that.jdn) {
 }
 
-Date::Month operator++(Date::Month &self, int) {
-  Date::Month result = self; ++self; return result;
+Date::Date(int year, Month month, int day) {
+  if (year == 0)
+    throw std::invalid_argument("Date::Date: year should not equal to 0.");
+  if (month < 1 || 12 < month)
+    throw std::invalid_argument("Date::Date: month not in 1~12.");
+  if (day < 1 || dayInMonth(year, month) < day)
+    throw std::invalid_argument("Date::Date: day not in range.");
+  if (year < 0) ++year;
+  const int a = (14 - month) / 12;
+  const int y = year + 4800 - a;
+  const int m = month + 12 * a - 3;
+  const int d = day;
+  jdn = d + (153 * m + 2) / 5 + y * 365 + y / 4 - y / 100 + y / 400 - 32045;
 }
 
-Date::Month &operator--(Date::Month &self) {
-  switch (self) { 
-   case Date::JANUARY:
-    return self = Date::DECEMBER;
-   case Date::FEBRUARY:
-    return self = Date::JANUARY;
-   case Date::MARCH:
-    return self = Date::FEBRUARY;
-   case Date::APRIL:
-    return self = Date::MARCH;
-   case Date::MAY:
-    return self = Date::APRIL;
-   case Date::JUNE:
-    return self = Date::MAY;
-   case Date::JULY:
-    return self = Date::JUNE;
-   case Date::AUGUST:
-    return self = Date::JULY;
-   case Date::SEPTEMBER:
-    return self = Date::AUGUST;
-   case Date::OCTOBER:
-    return self = Date::SEPTEMBER;
-   case Date::NOVEMBER:
-    return self = Date::OCTOBER;
-   case Date::DECEMBER:
-    return self = Date::NOVEMBER;
-  }
-  return self;
+int Date::julian() const {
+  return this->jdn;
 }
 
-Date::Month operator--(Date::Month &self, int) {
-  Date::Month result = self; --self; return result;
+int Date::year() const {
+  const int J = this->jdn;
+  const int f = J + j + (4 * J + B) / 146097 * 3 / 4 + C;
+  const int e = r * f + v;
+  const int M = this->month();
+  const int Y = e / p - y + (n + m - M) / n;
+  return Y > 0 ? Y : Y - 1;
 }
 
-Date::Weekday &operator++(Date::Weekday &self) {
-  switch (self) {
-   case Date::MONDAY:
-    return self = Date::TUESDAY;
-   case Date::TUESDAY:
-    return self = Date::WEDNESDAY;
-   case Date::WEDNESDAY:
-    return self = Date::THURSDAY;
-   case Date::THURSDAY:
-    return self = Date::FRIDAY;
-   case Date::FRIDAY:
-    return self = Date::SATURDAY;
-   case Date::SATURDAY:
-    return self = Date::SUNDAY;
-   case Date::SUNDAY:
-    return self = Date::MONDAY;
-  }
-  return self;
+Date::Month Date::month() const {
+  const int J = this->jdn;
+  const int f = J + j + (4 * J + B) / 146097 * 3 / 4 + C;
+  const int e = r * f + v, g = e % p / r, h = u * g + w;
+  return static_cast<Month>((h / s + m) % n + 1);
 }
 
-Date::Weekday operator++(Date::Weekday &self, int) {
-  Date::Weekday result = self; ++self; return result;
+int Date::day() const {
+  const int J = this->jdn;
+  const int f = J + j + (4 * J + B) / 146097 * 3 / 4 + C;
+  const int e = r * f + v, g = e % p / r, h = u * g + w;
+  return h % s / u + 1;
 }
 
-bool Date::isLeap(int y) {
-  bool result = false;
-  result |= y % 4 == 0 && y % 100 != 0;
-  result |= y % 400 == 0 && y % 3200 != 0;
-  return result;
+Date::Weekday Date::weekday() const {
+  return static_cast<Weekday>((this->jdn + 1) % 7);
 }
 
-int Date::dayInMonth(int y, Month m) {
-  return dayInMonth_[m] + (isLeap(y) && m == FEBRUARY);
+Date &operator++(Date &self) {
+  ++self.jdn; return self;
 }
 
-Date::Date(int y, Month m, int d)
-    : year_(y), month_(m), day_(d) {
-  if (m < 1 || 12 < m)
-    throw std::invalid_argument("Date::Date(int, Date::Month, int): month");
-  if (d < 1 || dayInMonth(y, static_cast<Date::Month>(m)) < d)
-    throw std::invalid_argument("Date::Date(int, Date::Month, int): day");
+Date operator++(Date &self, int) {
+  Date result = self; ++self; return result;
 }
 
-Date::Date(int y, int m, int d)
-    : year_(y), month_(static_cast<Date::Month>(m)), day_(d) {
-  if (m < 1 || 12 < m)
-    throw std::invalid_argument("Date::Date(int, int, int) month");
-  if (d < 1 || dayInMonth(y, static_cast<Date::Month>(m)) < d)
-    throw std::invalid_argument("Date::Date(int, int, int) day");
+Date &operator--(Date &self) {
+  --self.jdn; return self;
+}
+
+Date operator--(Date &self, int) {
+  Date result = self; --self; return result;
+}
+
+Date &operator+=(Date &lhs, int rhs) {
+  lhs.jdn += rhs; return lhs;
+}
+
+Date operator+(const Date &lhs, int rhs) {
+  Date result = lhs; result += rhs; return result;
+}
+
+Date operator+(int &lhs, const Date &rhs) {
+  Date result = rhs; result += lhs; return result;
+}
+
+Date operator-(Date &lhs, int rhs) {
+  Date result = lhs; result += rhs; return result;
+}
+
+int operator-(const Date &lhs, const Date &rhs) {
+  return lhs.julian() - rhs.julian();
 }
 
 bool operator==(const Date &lhs, const Date &rhs) {
-  return lhs.year() == rhs.year()
-      && lhs.month() == rhs.month()
-      && lhs.day() == rhs.day();
+  return lhs.julian() == rhs.julian();
 }
 
 bool operator!=(const Date &lhs, const Date &rhs) {
@@ -181,9 +136,7 @@ bool operator!=(const Date &lhs, const Date &rhs) {
 }
 
 bool operator<(const Date &lhs, const Date &rhs) {
-  if (lhs.year() != rhs.year()) return lhs.year() < rhs.year();
-  if (lhs.month() != rhs.month()) return lhs.month() < rhs.month();
-  return lhs.day() < rhs.day();
+  return lhs.julian() < rhs.julian();
 }
 
 bool operator>=(const Date &lhs, const Date &rhs) {
@@ -198,83 +151,13 @@ bool operator<=(const Date &lhs, const Date &rhs) {
   return !(rhs < lhs);
 }
 
-Date &operator++(Date &self) {
-  const int dim = Date::dayInMonth(self.year_, self.month_);
-  if (self.day_++ == dim) {
-    if (self.month_++ == Date::DECEMBER) ++self.year_;
-    self.day_ = 1;
-  }
-  return self;
+bool Date::isLeapYear(int year) {
+  if (year == 0)
+    throw std::invalid_argument("Date::isLeapYear: year should not be 0.");
+  if (year < 0) ++year;
+  return (year % 4 == 0 && year % 100 != 0) || year % 400 == 0;
 }
 
-Date operator++(Date &self, int) {
-  Date result = self; ++self; return result;
-}
-
-Date &operator--(Date &self) {
-  if (self.day_-- == 1) {
-    if (self.month_-- == Date::JANUARY) --self.year_;
-    self.day_ = Date::dayInMonth(self.year_, self.month_);
-  }
-  return self;
-}
-
-Date operator--(Date &self, int) {
-  Date result = self; --self; return result;
-}
-
-int operator-(const Date &lhs, const Date &rhs) {
-  bool negative = lhs < rhs;
-  Date l = lhs, r = rhs;
-  if (negative) std::swap(l, r);
-  int result = Date::yearDiff_(r.year_, l.year_);
-  result = result + l.dayOfYear() - r.dayOfYear();
-  return negative ? -result : result;
-}
-
-int Date::year() const {
-  return this->year_;
-}
-
-Date::Month Date::month() const {
-  return this->month_;
-}
-
-int Date::day() const {
-  return this->day_;
-}
-
-Date::Weekday Date::weekday() const {
-  int m = static_cast<int>(this->month_);
-  int year = this->year_;
-  if (m <= 2) m += 12, --year;
-  const int c = year / 100;
-  const int y = year % 100;
-  const int d = this->day_;
-  int w = (y + y / 4 + c / 4 - c * 2 + (m + 1) * 26 / 10 + d - 1) % 7;
-  return static_cast<Date::Weekday>(w < 0 ? w + 7 : w);
-}
-
-int Date::dayOfYear() const {
-  int result = 0;
-  for (int i = 1; i != this->month_; ++i)
-    result += Date::dayInMonth(this->year_, static_cast<Month>(i));
-  return result + this->day_ - 1;
-}
-
-int Date::yearDiff_(int lhs, int rhs) {
-  int result = (rhs - lhs) * 365;
-  lhs = (lhs + 3) / 4;
-  rhs = (rhs + 3) / 4;
-  result += rhs - lhs;
-  lhs = (lhs + 24) / 25;
-  rhs = (rhs + 24) / 25;
-  result -= rhs - lhs;
-  lhs = (lhs + 3) / 4;
-  rhs = (rhs + 3) / 4;
-  result += rhs - lhs;
-  lhs = (lhs + 7) / 8;
-  rhs = (rhs + 7) / 8;
-  result -= rhs - lhs;
-  return result;
+int Date::dayInMonth(int year, Date::Month month) {
+  return monthLen_[month] + (isLeapYear(year) && month == February);
 }
