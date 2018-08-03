@@ -70,26 +70,26 @@ Matrix<T>::Matrix()
 }
 
 template <typename T>
-Matrix<T>::Matrix(const Matrix &that) {
+Matrix<T>::Matrix(const Matrix &that)
+    : row_(0), col_(0), value(NULL) {
   this->copyFrom(that);
 }
 
 template <typename T>
 Matrix<T> &Matrix<T>::operator=(const Matrix &that) {
-  this->~Matrix();
   this->copyFrom(that);
   return *this;
 }
 
 #if __cplusplus >= 201103L
 template <typename T>
-Matrix<T>::Matrix(Matrix &&that) {
+Matrix<T>::Matrix(Matrix &&that)
+    : value{nullptr} {
   this->moveFrom(that);
 }
 
 template <typename T>
 Matrix<T> &Matrix<T>::operator=(Matrix &&that) {
-  this->~Matrix();
   this->moveFrom(that);
   return *this;
 }
@@ -97,7 +97,8 @@ Matrix<T> &Matrix<T>::operator=(Matrix &&that) {
 
 template <typename T>
 Matrix<T>::~Matrix() {
-  delete[] this->value, this->value = NULL;
+  delete[] this->value;
+  this->value = NULL;
 }
 
 template <typename T>
@@ -119,11 +120,15 @@ Matrix<T>::Matrix(const Head (&head)[Col], const Tail (&...tail)[Col])
 
 template <typename T> Matrix<T> &
 Matrix<T>::copyFrom(const Matrix &that) {
-  const size_t size = that.row_ * that.col_;
+  const size_t new_size = that.row_ * that.col_;
+  const size_t old_size = this->row_ * this->col_;
   this->row_ = that.row_;
   this->col_ = that.col_;
-  this->value = new T[size];
-  std::copy(that.value, that.value + size, this->value);
+  if (new_size != old_size) {
+    delete[] this->value;
+    this->value = new T[new_size];
+  }
+  std::copy(that.value, that.value + new_size, this->value);
   return *this;
 }
 
