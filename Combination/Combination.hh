@@ -6,6 +6,7 @@
 
 template <typename T>
 T binomial(T m, T n) {
+  if (m < 0 || n < 0) return 0;
   T r = 1;
   if (n * 2 > m) n = m - n;
   for (int i = 1; i <= n; ++i)
@@ -17,14 +18,14 @@ T binomial(T m, T n) {
 
 template <typename T>
 std::pair<T, std::pair<T, T> > exgcd(T m, T n) {
-    using std::make_pair;
-    T x = 0, y = 1, xp = 1, yp = 0, xt, yt;
-    for (T r = m % n, q = m / n; r; ) {
-        xt = xp - q * x, xp = x, x = xt;
-        yt = yp - q * y, yp = y, y = yt;
-        m = n, n = r, r = m % n, q = m / n;
-    }
-    return make_pair(n, make_pair(x, y));
+  using std::make_pair;
+  T x = 0, y = 1, xp = 1, yp = 0, xt, yt;
+  for (T r = m % n, q = m / n; r; ) {
+    xt = xp - q * x, xp = x, x = xt;
+    yt = yp - q * y, yp = y, y = yt;
+    m = n, n = r, r = m % n, q = m / n;
+  }
+  return make_pair(n, make_pair(x, y));
 }
 
 template <typename T>
@@ -38,6 +39,7 @@ T modinv(T m, T n) {
 
 template <typename T>
 T binomial(T m, T n, T p) {
+  if (m < 0 || n < 0) return 0;
   T r = 1;
   do {
     T mp = m % p, np = n % p;
@@ -50,7 +52,6 @@ T binomial(T m, T n, T p) {
 }
 
 #include <vector>
-#include <cassert>
 
 template <typename T>
 std::vector<std::vector<T> > initializeBinomial(size_t m) {
