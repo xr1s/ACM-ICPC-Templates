@@ -1,0 +1,19 @@
+\clearpage
+\section{图论}
+
+\subsection{Cayley 公式}
+包含 $n$ 个节点的完全图的生成树计数为 $n^{n-2}$.
+
+对于包含 $v$ 个节点, 有 $n$ 个联通块, 每个联通块包含 $v_k$ 个节点的图, 新增 $s-1$ 条边使其互相连通的方案数为 $\displaystyle v^{s-2}\prod_{k=1}^nv_k$.
+
+\subsection{Kirchhoff 矩阵树定理}
+对于一般图的生成树计数方案.
+
+对于一张节点数为 $|V|$ 的图, 建立 $|V|^2$ 的方阵 $\mathbf K$, 满足对于每个节点 $v$, $\mathbf K_{v,v}$ 为节点 $v$ 的度数, 对于所有节点对 $(u,v)$, 若它们之间存在边, 则 $\mathbf K_{u,v}=\mathbf K_{v,u}=-1$, 否则 $\mathbf K_{u,v}=\mathbf K_{v,u}=0$.
+
+则矩阵 $\mathbf K$ 中任意抽去一行一列之后剩下的 $(|V|-1)^2$ 方阵行列式即为生成树个数.
+
+\subsection{Euler-Cartesian 公式}
+对于平面图, 满足 $V-E+F=C+1$, 其中 $V$ 为顶点数, $E$ 边数, $F$ 面数, $C$ 连通块数.
+
+对于常见 (和球面同胚, 此时 $C=1$) 的多面体上式亦成立.

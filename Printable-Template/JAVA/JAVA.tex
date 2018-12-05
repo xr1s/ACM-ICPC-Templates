@@ -1,0 +1,41 @@
+\section{Java} \subsection{\lstinline[basicstyle=\mono]{BigInteger}}
+\subsubsection{构造}
+从整数构造的时候, 可以先考虑包中预定义的几个常量: \lstinline{BigInteger.ZERO}, \lstinline{BigInteger.ONE}, \lstinline{BigInteger.TWO} 和 \lstinline{BigInteger.TEN}. 还可以利用一个静态函数从 \lstinline{long} 构造: \lstinline{BigInteger.valueOf}.
+
+一般来说更习惯于从 \lstinline{String} 构造, 直接构造函数即可. 构造函数有第二个可选参数作为字符串表示的进制基底 (其实是重载实现的).
+
+需要将一个对象转成几个基本类型时使用方法 \lstinline{BigInteger.intValue}, \lstinline{BigInteger.longValue} 和 \lstinline{doubleValue} 等. 转为 \lstinline{String} 时则是世界通用的 \lstinline{BigInteger.toString} 方法, 也可以有一个可选参数作为转换成的进制基底.
+
+\subsubsection{运算}
+\lstinline{BigInteger} 是不可变类型, 一切运算均不会修改原对象的值, 只会返回新的值, 运算比较好记, 下面列几个常用的, 按复杂度排序的话:
+
+\begin{center}
+  \begin{tabular}{ccc}
+    \toprule
+    操作 & 函数 & 复杂度 \\
+    \toprule
+    加法 & \lstinline|add| & $O(n)$ \\
+    \midrule
+    减法 & \lstinline|subtract| & $O(n)$ \\
+    \bottomrule
+  \end{tabular}\qquad
+  \begin{tabular}{ccc}
+    \toprule
+    操作 & 函数 & 复杂度 \\
+    \toprule
+    加法 & \lstinline|add| & $O(n)$ \\
+    \midrule
+    减法 & \lstinline|subtract| & $O(n)$ \\
+    \bottomrule
+  \end{tabular}
+\end{center}
+
+二进制计数 \lstinline{BigInteger.bitLength}, \lstinline{BigInteger.bitCount}.
+
+二进制运算 \lstinline[language=Java]{BigInteger.and}, \lstinline[language=Java]{BigInteger.or}, \lstinline[language=Java]{BigInteger.not}, \lstinline[language=Java]{BigInteger.xor}, \lstinline[language=Java]{BigInteger.andNot}.
+
+\paragraph{$O(n^{\log_23})$:} \lstinline{BigInteger.multiply} \textit{注: JDK 7 使用朴素 $O(n^2)$ 算法, 8 改用 Karatsuba 算法}.
+
+\paragraph{基于乘法} \lstinline{BigInteger.divide} \textit{注: Knuth 长除法和 Burnikel Ziegler 算法}.
+
+\paragraph{基于除法} \lstinline{BigInteger.gcd}

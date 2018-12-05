@@ -1,0 +1,46 @@
+\section{数据结构}
+
+若无特别说明, 所有数据结构操作下标均从 0 开始, 所有范围均由左闭右开区间定义.
+
+\subsection{堆式线段树}
+
+\lstinputlisting{DS/SegmentTree.hh}
+
+\paragraph{说明:}
+若模板参数 \lstinline{T} 为 \lstinline{int}, \lstinline{long} 等内置类型, 则默认为区间求和线段树. 对于稍一般的线段树问题, 可以自定义结构体, 只要实现默认构造和一个值构造函数, 合并孩子: \lstinline{operator+}, 多个节点合并: 关于 \lstinline{size_t} 的 \lstinline{operator*}, lazy 标签判空: \lstinline{operator bool}, 最少这四个函数即可. (如果复制构造不是平凡的的话还需要手动实现拷贝构造函数等一系列函数).
+
+注意该模板只能求整个区间的 \lstinline{operator+}, 如果线段树的修改操作和子树合并的 \lstinline{operator+} 不同则需要对模板稍作修改 —— 注意 \lstinline{lazy} 的更新和 \lstinline{push_down} 即可.
+
+\lstinline{push_down} 一般都是线段树中的难点, 开始撰写前一定要推好公式, 撰写时保持结构, 保持头脑清新, 可以另外用一个函数分别 \lstinline{modify} 两个子树的 \lstinline{lazy} 和数据.
+
+\paragraph{实例:}
+\begin{lstlisting}
+template <typename T>
+struct RangeMaximum {
+  T value;
+  RangeMaximum(const T &value = numeric_limits<T>::min()): value{value} {
+  }
+  RangeMaximum operator+(const RangeMaximum &that) const {
+    return {max(this->value, that.value)};
+  }
+  RangeMaximum operator*(size_t) const { return {this->value}; }
+  operator bool() { return this->value == numeric_limits<T>::min(); }
+};
+\end{lstlisting}
+
+\subsection{树状数组}
+只有一个数组, 无结构体, 手动维护树状数组大小. 当然下标也是从 0 开始.
+
+\lstinputlisting{DS/FenwickTree.hh}
+
+\clearpage
+\subsection{二叉搜索树}
+\lstinputlisting{DS/BinarySearchTree.hh}
+
+\clearpage
+\subsection{伸展树}
+如果伸展树需要对开区间进行操作, 在一开始构造的时候必须提供两个不影响各项查询结果的最小值和最大值作为左右边界, 这样才可以在删除整棵树的时候能方便地找到两个顶点支撑着根和根的左儿子, 这样被删除的区间就恰好位于根左儿子的右儿子, 可以很方便地摘掉.
+
+为了方便旋转到根的孩子, 可以另外提供一个函数返回根部的 \lstinline{iterator}.
+
+\lstinputlisting{DS/SplayTree.hh}

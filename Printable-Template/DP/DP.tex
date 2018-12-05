@@ -1,0 +1,42 @@
+\section{动态规划}
+\subsection{最长公共子序列}
+对于长度分别为 $n,m$ 的串 $s,t$, 求它们长度最长的公共子序列.
+
+时空复杂度均为 $O(nm)$. 使用滚动数组可以降低一维, 空间复杂度 $O\left(\min\{n,m\}\right)$.
+
+\lstinputlisting{DP/LCS.hh}
+
+如需求出最长公共子序列本身, 在求出的 \lstinline{lcs} 数组中找到那些被加一的位置即可.
+
+当其中一个串中的字符不重时, 可以将字符按位置递增编号, 则可以在另一个串中球最长不下降子序列, 时间复杂度降为线性对数级.
+
+\subsection{最长上升子序列}
+对于长为 $n$ 的串 $s$, 求最长上升子序列.
+
+\lstinputlisting{DP/LIS.hh}
+
+\begin{tabular}{@{}>{\textbullet}cll@{}}
+  & 最长上升子序列:   & \lstinline|LIS(s, t, less<>{})|.          \\
+  & 最长不下降子序列: & \lstinline|LIS(s, t, less_equal<>{})|.    \\
+  & 最长下降子序列:   & \lstinline|LIS(s, t, greater<>{})|.       \\
+  & 最长不下降子序列: & \lstinline|LIS(s, t, greater_equal<>{})|. \\
+\end{tabular}
+
+\subsection{最大子串和}
+对于一个长为 $n$ 的串, 求出最大子串和. Kadane 算法, $O(n)$.
+
+\lstinputlisting{DP/maxSubarray.hh}
+
+\subsection{最大子矩阵和}
+
+给出 $n\times m$ 矩阵, 权值可正可负, 求最大子矩阵和.
+
+枚举上下边界, 上下边界之间的按列求最大子串和, $O\left(nm^2\right)$.
+
+\lstinputlisting{DP/maxSubmatrix.hh}
+
+\subsection{最大全1子矩阵/悬线法}
+
+给定 $n\times m$ 的 01 矩阵, 求最大全 1 子矩阵. 悬线法时间复杂度 $O(nm)$.
+
+\lstinputlisting{DP/largestSubmatrix.hh}

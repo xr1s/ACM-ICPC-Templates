@@ -1,0 +1,10 @@
+\clearpage
+\section{线性代数}
+\lstinputlisting{LA/matrix.hh}
+
+\subsection{异或线性基}
+求一个集合互相异或的最大值, 第 $k$ 小值, 支持动态插入. $k$ 小值从 0 开始计数, 即最小值为第 $k=0$ 小值. $k$ 小值至少取集合中的 1 个数 (否则对于任意集合最小值均为 0).
+
+如无必要, 可以将 \lstinline{span} 和 \lstinline{has0} 去除, 它们仅用于求集合中数字异或得到的 $k$ 小值.
+
+\lstinputlisting{LA/xor-basis.hh}

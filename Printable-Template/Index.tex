@@ -1,0 +1,64 @@
+\documentclass{article}
+
+\usepackage{xeCJK}
+\usepackage{ctex}
+
+\usepackage{geometry}
+\geometry{left=1.25in,right=1.25in,top=1in,bottom=1in}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\lhead{ACM-ICPC模板整理}
+\rhead{UESTC\_Continue}
+
+\usepackage{fontspec}
+\newfontfamily\mono{OperatorMono-Book}
+\newfontfamily\boldmono{OperatorMono-Bold}
+
+\usepackage{listings}
+\lstset{
+  basicstyle=\linespread{1}\small\mono,
+  keywordstyle=\boldmono,
+  commentstyle=\itshape,
+  frame=single,
+  language=[11]C++,
+  morekeywords={size_t, uintmax_t},
+  tabsize=2,
+  showstringspaces=false,
+}
+
+\usepackage{amsmath, amssymb}
+\usepackage{relsize}
+
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{makecell}
+\usepackage{subcaption}
+
+\usepackage{graphicx}
+
+\title{\bf ACM-ICPC模板整理}
+\author{UESTC\_Continue}
+\date{2018年}
+
+\begin{document}
+\maketitle
+\tableofcontents
+
+\include{DP/DP} % 动态规划 Dynamic Programming
+\include{DS/DS} % 数据结构 Data Structure
+\include{GT/GT} % 图论 Graph Theory
+\include{CGT/CGT} % 组合博弈论 Combinatorial Game Theory
+\include{SEQ/SEQ} % 数列 Sequences
+\include{NT/NT} % 数论 Number Theory
+\include{LA/LA} % 线性代数 Linear Algebra
+\include{CM/CM} % 组合数学 Combinatorics Mathematica
+%\include{S/S} % 字符串处理 String
+%\include{CG/CG} % 计算几何 Computational Geometry
+%\include{R/R} % 随机化算法 Randomization
+\include{MISC/MISC} % 杂项 Miscellaneous
+\include{JAVA/JAVA} % Java
+\include{BM/BM} % 黑魔法 Black Magic
+\include{ST/ST} % 战术 Strategy and Tactics
+
+\end{document}

@@ -1,0 +1,45 @@
+\clearpage
+\section{组合排列}
+\subsection{二项式系数}
+$\displaystyle\binom nm$ 无取模可直接线性递推, 复杂度 $O(\min\{m,n-m\})$.
+
+\lstinputlisting{CM/binomial.hh}
+
+对较小的素模数 $p$ 求二项式系数可利用 Lucas 定理降低复杂度至 $O(p\log_p\min\{m,n-m\})$
+
+\lstinputlisting{CM/lucas.hh}
+
+$O(nm)$ 打表预处理.
+
+\lstinputlisting{CM/init-binomial.hh}
+
+若 $n$, $m$ 均较小而 $O(nm)$ 较大 (直接储存结果空间超限), 求 $\displaystyle\binom nm\bmod p$, 可以对阶乘和阶乘逆元打表, 再利用公式 $\displaystyle\binom nm\equiv n![m!]^{-1}[(n-m)!]^{-1}\pmod p$ 可 $O(1)$ 求出二项式系数.
+
+\clearpage
+\subsection{球放盒方案数}
+
+下表中, $p$ 函数为分拆数, $\displaystyle\binom nm$ 为二项式系数, $\genfrac\{\}{0pt}0nm$ 为第二类 Stirling 数.
+
+\begin{center}
+  \begin{tabular}{cccc}
+    \toprule
+    $n$ 球   &  $m$ 盒  & 空盒 & 方案数 \\
+    \toprule
+    完全相同 & 完全相同 &  无  & $\displaystyle p(n,m)$\\
+    \midrule
+    完全相同 & 完全相同 &  有  & $\displaystyle p(n+m,m)$ \\
+    \midrule
+    完全相同 & 各不相同 &  无  & $\displaystyle\binom{n-1}{m-1}$ \\
+    \midrule
+    完全相同 & 各不相同 &  有  & $\displaystyle\binom{n+m-1}{m-1}$ \\
+    \midrule
+    各不相同 & 完全相同 &  无  & $\displaystyle\genfrac\{\}{0pt}0nm$ \\
+    \midrule
+    各不相同 & 完全相同 &  有  & $\displaystyle\sum_{k=1}^m\genfrac\{\}{0pt}0nk$ \\
+    \midrule
+    各不相同 & 各不相同 &  无  & $\displaystyle m!\genfrac\{\}{0pt}0nm$ \\
+    \midrule
+    各不相同 & 各不相同 &  有  & $\displaystyle m^n$ \\
+    \bottomrule
+  \end{tabular}
+\end{center}

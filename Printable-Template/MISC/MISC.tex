@@ -1,0 +1,15 @@
+\section{杂项}
+\subsection{日期}
+Julian 历法 Gregorian 历法互转. 可计算星期, 日期差, 数日前/后的年月日等, 全部 $O(1)$.
+
+月份日期均从 1 开始计数, 无公元 0 年, 4 年一闰, 100 年一平, 400 年一闰.
+
+\lstinputlisting{MISC/date.hh}
+
+\subsection{有理数}
+\lstinputlisting{MISC/rational.hh}
+
+\subsection{Josephus 问题}
+共 $n$ 人, 每 $m$ 人自杀一人, 问第 $k$ 个自杀的人原编号是多少. 返回值 (人头编号) 和 $k$ 均从 0 开始计数, 即第 1 个自杀者之前还有一个第 0 个自杀者.
+
+\lstinputlisting{MISC/josephus.hh}

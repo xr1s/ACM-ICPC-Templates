@@ -1,0 +1,292 @@
+\section{黑魔法}
+注意下列操作均有一定危险性, 最好在热身赛先测试一遍哪些指令可用不至于运行时错误.
+
+\subsection{扩展栈大小}
+\subsubsection{Linux 运行期转移栈}
+\lstinputlisting{BM/stack-linux-amd64.cc}
+
+因为不放心 \lstinline{_Exit} 的一些副作用所以保存了一下旧栈指针用来恢复.
+
+如果不想保存旧栈指针, 应当在 \lstinline{main} 最后 \lstinline{fflush(stdout)}, \lstinline{cout << flush}, 并 \lstinline{_Exit(0)} 才能保证程序正常输出并退出.
+
+\subsubsection{Windows 编译期申请栈}
+\lstinputlisting{BM/stack-windows-x86.hh}
+
+\lstinline{reserve} 是指运行时栈总大小, \lstinline{commit} 是指程序开始运行时需要系统分配给栈的物理内存大小, \lstinline{commit} 为可选项. 单位为字节.
+
+过大的 \lstinline{commit} 会导致程序启动时间增加, 但是运行时不需要系统另外为栈分配内存页.
+
+\subsection{\lstinline[basicstyle=\mono]{_Pragma} 编译优化}
+\lstinputlisting{BM/pragma-optimize.hh}
+
+似乎老版本的编译器会存在 \lstinline{#pragma} 失效的 bug, 此时可以将 \lstinline{__attribute__((optimize("-O3")))} 和 \lstinline{__attribute__((target("...")))} 放在每个函数声明之前或大括号前, 不过效率不如全局高:
+
+\lstinputlisting{BM/attribute-optimize.hh}
+
+\subsection{编译器内建函数}
+%\subsubsection{GNU}
+\subsubsection{Find First Set}
+\lstinline|int __builtin_ffs{,l,ll}(Integral)|
+
+找到参数二进制中从最低位开始的首个 1 的下标, 下标从 1 开始. 若参数为 0 则返回 0.
+
+\subsubsection{Count Leading Zeros}
+\lstinline|int __builtin_clz{,l,ll}(Unsigned)|
+
+计数参数二进制中最高位开始的 0 的个数, 参数为 0 时行为未定义.
+
+即在 $n\neq0$ 的情况下返回 $w-\lceil\log_2(n+1)\rceil$, $w$ 为数据类型位长.
+
+\subsubsection{Count Trailing Zeros}
+\lstinline|int __builtin_ctz{,l,ll}(Unsigned)|
+
+除了参数为 0 的情况, 该函数等价于对应的内建 FFS-1, 当参数为 0 时行为未定义.
+
+\subsubsection{Count Leading Redundant Sign Bits}
+\lstinline|int __builtin_clrsb{,l,ll}(Integral)|
+
+计数参数二进制中从最高位开始和符号位相同的二进制位个数.
+
+\subsubsection{Population Count}
+\lstinline|int __builtin_popcount{,l,ll}(Unsigned)|
+
+计数参数二进制中所有 1 的个数.
+
+编译开启 \lstinline{#pramga GCC target("popcnt")} 可优化成一个指令.
+
+\subsubsection{Parity}
+\lstinline|int __builtin_parity{,l,ll}(Unsigned)|
+
+如果参数二进制中所有 1 的个数为奇数则返回 1, 否则返回 0.
+
+\subsubsection{Power Integer}
+\lstinline|Floating __builtin_powi{,f,l}(Floating, int)|
+
+和 \lstinline{pow} 类似, 计算幂次, 第二个参数为 \lstinline{int}. 无精度保证, 速度快.
+
+\subsubsection{Binary Swap}
+\lstinline|Integral __builtin_bswap{16,32,64}(Integral)|
+
+逆序二进制每一字节, 单个字节内每一位保持不变.
+
+\subsubsection{RdRand}
+\lstinline|unsigned int __builtin_ia32_rdrand{16,32,64}_step(Unsigned *)|
+
+真随机数生成, 写入到参数指向的地址. 需要打开 \lstinline{#pragma GCC target("rdrnd")}.
+
+\subsubsection{整数加减乘溢出检查}
+
+\lstinline|bool __builtin_sadd{,l,ll}_overflow(Integral, Integral, Integral *)|
+
+\lstinline|bool __builtin_uadd{,l,ll}_overflow(Unsigned, Unsigned, Unsigned *)|
+
+\lstinline|bool __builtin_ssub{,l,ll}_overflow(Integral, Integral, Integral *)|
+
+\lstinline|bool __builtin_usub{,l,ll}_overflow(Unsigned, Unsigned, Unsigned *)|
+
+\lstinline|bool __builtin_smul{,l,ll}_overflow(Integral, Integral, Integral *)|
+
+\lstinline|bool __builtin_umul{,l,ll}_overflow(Unsigned, Unsigned, Unsigned *)|
+
+\lstinline|bool __builtin_add_overflow(type1, type2, type3 *)|
+
+\lstinline|bool __builtin_sub_overflow(type1, type2, type3 *)|
+
+\lstinline|bool __builtin_mul_overflow(type1, type2, type3 *)|
+
+\lstinline|bool __builtin_add_overflow_p(type1, type2, type3)|
+
+\lstinline|bool __builtin_sub_overflow_p(type1, type2, type3)|
+
+\lstinline|bool __builtin_mul_overflow_p(type1, type2, type3)|
+
+无未定义行为的整型溢出检查, \lstinline{_p} 版本无视第三个参数, 其它的将计算结果储存到第三个参数指向的地址. 若有溢出则返回 \lstinline{true}, 否则 \lstinline{false}.
+
+\subsubsection{MSVC}
+MSVC 的内置函数需要包含 \lstinline{intrin.h}. 由于正式赛中没有 MSVC 因此自成一小节.
+
+\paragraph{Bit Scan Forward:} \lstinline|unsigned char _BitScanForward{,64}(unsigned long *, Unsigned)|
+
+对于第二个参数, 从二进制最低位开始找到并返回第一个 1 的下标, 写入第一个参数指向的地址. 下标从 0 开始, 函数默认返回 1, 若传入参数为 0 则函数返回 0, 参数一指向被填为 0.
+
+\paragraph{Bit Scan Reverse:} \lstinline|unsigned char _BitScanReverse{,64}(unsigned long *, Unsigned)|
+
+对于第二个参数, 从二进制最高位开始找到并返回第一个 1 的下标, 写入第一个参数指向的地址. 下标从 0 开始, 函数默认返回 1, 若传入参数为 0 则函数返回 0, 参数一指向被填为 0.
+
+\paragraph{Leading Zeros Count:}
+\lstinline|Unsigned __lzcnt{16,,64}(Unsigned)|
+
+返回参数二进制前导 0 个数.
+
+\paragraph{Population Count}
+\lstinline|Unsigned __popcnt{16,,64}(Unsigned)|
+
+返回参数二进制中 1 个数.
+
+\paragraph{128-bit Multiplication}\mbox{}
+
+\lstinline{unsigned __int64 _umul128(unsigned __int64, unsigned __int64, unsigned __int64 *)}
+
+\lstinline{unsigned __int64 _umulh(unsigned __int64, unsigned __int64)}
+
+\lstinline{_umul128} 的前两个参数为乘法运算参数, 函数返回值为乘法结果 128 位整数的低 64 位, 高 64 位被写入第三个参数指向的地址.
+
+\lstinline{_umulh} 的参数为乘法运算参数, 函数返回值乘法结果的高 64 位.
+
+\subsection{编译器扩展}
+\paragraph{三目运算符} \lstinline{value ?: otherwise} 等价于 \lstinline{value ? value : otherwise}.
+\paragraph{128 位整数类型} \lstinline{__int128} 和 \lstinline{unsigned __int128}.
+
+\paragraph{128 位浮点类型} \lstinline{_Float128}, 字面量后缀为 \lstinline{Q} 或 \lstinline{q}.
+
+\paragraph{十进浮点类型} C 中是 \lstinline|_Decimal{32,64,128}|, C++ 中在头文件 \lstinline{decimal/decimal} 中命名空间 \lstinline{decimal} 中的三个类 \lstinline|decimal{32,64,128}|, 不建议使用该类型, 建议重新 \lstinline{typedef}:
+
+\begin{lstlisting}
+typedef float decimal32  [[gnu::mode(SD)]];
+typedef float decimal64  [[gnu::mode(DD)]];
+typedef float decimal128 [[gnu::mode(TD)]];
+\end{lstlisting}
+
+\lstinline{_Decimal32} 字面量后缀为 \lstinline{df}, \lstinline{_Decimal64} 字面量后缀为 \lstinline{dd}, \lstinline{_Decimal128} 字面量后缀为 \lstinline{dl}. 
+
+\paragraph{范围 \lstinline[basicstyle=\mono]{case}}
+
+支持在 \lstinline{switch}-\lstinline{case} 中使用范围语法, 即 \lstinline{case '0' ... '9':} 表示 \lstinline{'0'} 到 \lstinline{'9'} 闭区间.
+
+\clearpage
+\subsection{库扩展}
+\subsubsection{\lstinline[basicstyle=\mono]{__gnu_cxx::rope}}
+需要包含 \lstinline{<ext/rope>}, 基本操作和 \lstinline{std::basic_string} 类似, 采用数据结构 rope 实现.
+
+原型 \lstinline{__gnu_cxx::rope<CharT, Alloc>}, 有 \lstinline{crope} 作为 \lstinline{rope<char>} 的别名.
+
+Rope 的复制构造是 $O(1)$ 的, 而且极省空间, 可以用作低效 (雾) 的可持久化数据结构使用.  由于该结构在 C++11 之前被设计编写, 因此没有一些 C++11 特性, 如没有针对 rope 的 \lstinline{std::hash} 的偏特化.
+
+下面是一些和 \lstinline{std::basic_string} 不同的接口简表:
+
+\begin{center}
+  \begin{tabular}{ccc}
+    \toprule
+    \textbf{接口名} & \textbf{函数} & \textbf{备注} \\
+    \toprule
+    访存 & \makecell{\lstinline|at|\\\lstinline|operator[]|} & 返回值非引用 \\
+    \midrule
+    引用访存 & \lstinline|mutable_reference_at| & \\
+    \midrule
+    首尾元素 & \makecell{\lstinline|front|\\\lstinline|back|} & 返回值非引用 \\
+    \midrule
+    首尾常迭代器 & \makecell{\lstinline|begin|\\\lstinline|end|} & 逆向迭代器同理 \\
+    \midrule
+    首尾迭代器 & \makecell{\lstinline|mutable_begin|\\\lstinline|mutable_end|} & 逆向迭代器同理 \\
+    \bottomrule
+  \end{tabular}
+\end{center}
+
+\subsubsection{\lstinline[basicstyle=\mono]{__gnu_pbds::cc_hash_table}, \lstinline[basicstyle=\mono]{__gnu_pbds::gp_hash_table}}
+
+需要包含 \lstinline{<ext/pb_ds/assoc_container.hpp>}. 它们和 \lstinline{std::unordered_map} 和 \lstinline{std::unordered_set} 类似, 区别在于 \lstinline{find} 返回的迭代器类型叫做 \lstinline{point_iterator}.
+
+\lstinline{cc_hash_table} 采用 seperate chaining 处理冲突, 效率比 \lstinline{unordered_map} 稍高.
+
+\lstinline{gp_hash_table} 采用 open addressing 处理冲突, 效率比 \lstinline{cc_hash_table} 稍低.
+
+\lstinputlisting{BM/pbds-hashtable-prototype.hh}
+
+默认情况下填上 \lstinline{Key} 和 \lstinline{Mapped} 就可以作为映射表使用, 如果 \lstinline{Mapped} 填入 \lstinline{__gnu_pbds::null_type} 则可以作为集合使用, 特别旧的编译器则要用 \lstinline{__gnu_pbds::null_mapped_type}.
+
+\subsubsection{\lstinline[basicstyle=\mono]{__gnu_pbds::tree}}
+需要包含 \lstinline{<ext/pb_ds/assoc_container.hpp>} 和 \lstinline{<ext/pb_ds/tree_policy.hpp>}, 和 \lstinline{std::map}, \lstinline{std::set} 类似, 区别在于各种元素查找操作返回的迭代器叫 \lstinline{point_iterator}.
+
+\lstinputlisting{BM/pbds-tree-prototype.hh}
+
+默认情况下填入 \lstinline{Key} 和 \lstinline{Mapped} 即可作为映射表使用. 如果 \lstinline{Mapped} 填入 \lstinline{__gnu_pbds::null_type} 则可以作为集合使用, 特别旧的编译器则要用 \lstinline{__gnu_pbds::null_mapped_type}.
+
+其中 \lstinline{Tag} 和 \lstinline{Node_Update} 决定了树的主要行为, 库中内置了一些类, 默认是 \lstinline{rb_tree_tag}.
+
+\begin{center}
+  \begin{tabular}{cc}
+    \toprule
+    \textbf{标签} & \textbf{类型} \\
+    \toprule
+    \lstinline|rb_tree_tag| & 红黑树 \\
+    \midrule
+    \lstinline|ov_tree_tag| & Ordered Vector 树 \\
+    \midrule
+    \lstinline|splay_tree_tag| & 伸展树 \\
+    \bottomrule
+  \end{tabular}
+\end{center}
+
+\lstinline{Node_Update} 则默认有 \lstinline{null_node_update}, 库中还内置一个 \lstinline{tree_order_statistics_node_update}, 作用是统计子树大小, 用这个才可以求第 $k$ 大的元素.
+
+下面是一些和 \lstinline{std::map} 或 \lstinline{std::set} 不同的接口说明:
+
+\begin{center}
+  \begin{tabular}{ccl}
+    \toprule
+    \textbf{接口名} & \textbf{函数} & \multicolumn{1}{c}{\textbf{备注}} \\
+    \toprule
+    第 $k$ 大元素 & \lstinline|find_by_order| & 接收零开始的 $k$值, 返回迭代器 \\
+    \midrule
+    元素大小排名 & \lstinline|order_of_key| & 接收数据, 返回从零开始的排名 \\
+    \midrule
+    拆分树 & \lstinline|split| & 需要接收一个分界值和接受拆分结果的对象 \\
+    \midrule
+    合并树 & \lstinline|join| & 接收另一个堆, 在参数中的堆会被清空 \\
+    \bottomrule
+  \end{tabular}
+\end{center}
+
+注意只有红黑树有对数时间的 \lstinline{split} 和 \lstinline{merge} 算法. PBDS 扩展并没有为伸展树实现高效的拆分合并算法 (伸展树理论也可以达到对数级别).
+
+\clearpage
+\subsubsection{\lstinline[basicstyle=\mono]{__gnu_pbds::priority_queue}}
+需要包含 \lstinline{<ext/pb_ds/priority_queue.hpp>}. 和 \lstinline{std::priority_queue} 类似, 但是包含效率更高的实现和船新的接口, 且迭代器也是 \lstinline{point_iterator}.
+
+原型 \lstinline{__gnu_pbds::priority_queue<ValueType, Compare, Tag, Alloc>}, 其中 \lstinline{Tag} 决定了实现优先队列的数据结构, 库中内置了:
+
+\begin{center}
+  \begin{tabular}{cc}
+    \toprule
+    \textbf{标签} & \textbf{类型} \\
+    \toprule
+    \lstinline|pairing_heap_tag| & 配对堆 \\
+    \midrule
+    \lstinline|binary_heap_tag| & 二叉堆 \\
+    \midrule
+    \lstinline|binomial_heap_tag| & 二项堆 \\
+    \midrule
+    \lstinline|rc_binomial_heap_tag| & RC 二项堆 \\
+    \midrule
+    \lstinline|thin_heap_tag| & 瘦堆 (Fibonacci 堆) \\
+    \bottomrule
+  \end{tabular}
+\end{center}
+
+性能上来说配对堆是最高的, 而且支持高效元素修改和合并, 适用于 Dijkstra 算法中, 默认模板参数使用的也是这个.
+
+和 \lstinline{std::priority_queue} 不同的接口说明:
+
+\begin{center}
+  \begin{tabular}{ccl}
+    \toprule
+    \textbf{接口名} & \textbf{函数} & \multicolumn{1}{c}{\textbf{备注}} \\
+    \toprule
+    构造 & & 可从迭代器范围构造 \\
+    \midrule
+    加入元素 & \lstinline|push| & 会返回迭代器 \\
+    \midrule
+    擦除元素 & \lstinline|erase| & 需要接收迭代器 \\
+    \midrule
+    修改元素 & \lstinline|modiry| & 需要接收迭代器和新值 \\
+    \midrule
+    清空堆 & \lstinline|clear| & \\
+    \midrule
+    拆分堆 & \lstinline|split| & 需要接收一个条件函数和接受拆分结果的对象 \\
+    \midrule
+    合并堆 & \lstinline|join| & 接收另一个堆, 在参数中的堆会被清空 \\
+    \midrule
+    迭代器 & \makecell{\lstinline|begin|\\\lstinline|end|} & 迭代的值不是有序的 \\
+    \bottomrule
+  \end{tabular}
+\end{center}
